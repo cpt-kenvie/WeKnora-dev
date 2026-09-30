@@ -9,16 +9,16 @@ import (
 	"github.com/Tencent/WeKnora/internal/types"
 )
 
-// answerQuestionToolResults 只读取内置检索工具的题目快照，外部工具不能伪造原题卡片。
-func (e *AgentEngine) answerQuestionToolResults(ctx context.Context, query string, state *types.AgentState, step types.AgentStep, sessionID string) bool {
+// collectQuestionToolReferences 只保存内置检索工具的原题快照；是否采用由后续模型回答中的引用决定。
+func (e *AgentEngine) collectQuestionToolReferences(ctx context.Context, state *types.AgentState, step types.AgentStep, sessionID string) {
 	refs := []*types.SearchResult{}
-	questionBankOnly := false
+	seen := make(map[string]bool, len(state.KnowledgeRefs))
+	for _, ref := range state.KnowledgeRefs {
+		seen[ref.ID] = true
+	}
 	for _, call := range step.ToolCalls {
 		if call.Name != agenttools.ToolSearchKnowledge || call.Result == nil || !call.Result.Success {
 			continue
-		}
-		if only, ok := call.Result.Data["question_bank_only"].(bool); ok && only {
-			questionBankOnly = true
 		}
 		rows, ok := call.Result.Data["results"].([]map[string]interface{})
 		if !ok {
@@ -30,21 +30,20 @@ func (e *AgentEngine) answerQuestionToolResults(ctx context.Context, query strin
 				continue
 			}
 			chunkID, _ := row["chunk_id"].(string)
+			if chunkID == "" || seen[chunkID] {
+				continue
+			}
+			seen[chunkID] = true
+			title, _ := row["knowledge_title"].(string)
 			images, _ := json.Marshal([]types.ImageInfo{{URL: q.ImageRef, OriginalURL: q.ImageRef}})
 			refs = append(refs, &types.SearchResult{ID: chunkID, KnowledgeID: q.KnowledgeID, KnowledgeBaseID: q.KnowledgeBaseID,
-				ChunkType: types.ChunkTypeQuestion, Content: q.SearchText(), ImageInfo: string(images), Question: q})
+				KnowledgeTitle: title, ChunkType: types.ChunkTypeQuestion, Content: q.SearchText(), ImageInfo: string(images), Question: q})
 		}
 	}
-	refs, _ = types.SelectQuestionResults(query, refs)
-	if len(refs) == 0 && !questionBankOnly {
-		return false
+	if len(refs) == 0 {
+		return
 	}
-	state.KnowledgeRefs = refs
-	state.FinalAnswer = types.QuestionAnswerMarkdown(query, refs)
-	state.IsComplete = true
+	state.KnowledgeRefs = append(state.KnowledgeRefs, refs...)
 	e.eventBus.Emit(ctx, event.Event{ID: generateEventID("references"), Type: event.EventAgentReferences, SessionID: sessionID,
 		Data: event.AgentReferencesData{References: refs}})
-	e.eventBus.Emit(ctx, event.Event{ID: generateEventID("answer"), Type: event.EventAgentFinalAnswer, SessionID: sessionID,
-		Data: event.AgentFinalAnswerData{Content: state.FinalAnswer, Done: true}})
-	return true
 }

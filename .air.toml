@@ -5,7 +5,7 @@ tmp_dir = "tmp"
 [build]
   args_bin = []
   bin = "./tmp/main"
-  cmd = "go build -tags \"${GO_BUILD_TAGS}\" -ldflags=\"$(./scripts/get_version.sh ldflags) -X 'google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn'\" -o ./tmp/main ./cmd/server"
+  cmd = "bash ./scripts/air-build.sh"
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "testdata", "frontend", "migrations", "node_modules", "docs", "logs", "data", "WeKnora-Chrome-Extension", "Formula", "dataset", "docreader", "docker", "llm_debug", "web", "mcp-server", "misc", "scripts", "dist", "client", "helm", "website-docs"]
   exclude_file = []
@@ -27,9 +27,9 @@ tmp_dir = "tmp"
   # 构建失败时停止运行，避免继续启动旧产物。
   stop_on_error = true
 
-# Air 在 Windows 下使用 PowerShell，构建命令和产物需要单独适配。
+# Windows 版 Air 需显式调用 Git Bash，并运行带 .exe 后缀的产物。
 [build.windows]
-  cmd = "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ./scripts/air-build.ps1"
+  cmd = "bash.exe ./scripts/air-build.sh ./tmp/main.exe"
   bin = "./tmp/main.exe"
 
 [color]

@@ -16,10 +16,14 @@ const sourceHandleProtocolPrompt = `
 ## Source handling protocol (system-owned)
 Retrieved content uses request-local source handles: cN identifies a knowledge chunk, wN a web page, dN a document, and bN a knowledge base.
 - Use dN and bN only as tool arguments when a tool requests a document or knowledge base.
-- Never reveal raw chunk IDs, knowledge IDs, knowledge-base IDs, or private source handles in user-visible output. This does not change separate instructions to preserve retrieved Markdown image URLs.`
+- Never reveal raw chunk IDs, knowledge IDs, knowledge-base IDs, or private source handles in user-visible output. This does not change separate instructions to preserve retrieved Markdown image URLs.
+- A chunk with type="question" is a question-bank candidate: its content is the original question and options, and its answer is the stored correct answer. Retrieval alone does not establish relevance.
+- Compare each candidate with the user's actual question, including negation, conditions and options. Answer only the question(s) requested; never list every retrieved candidate by default. Use each selected question's own stored answer, without inventing or changing it.
+- For a question-bank request, if no candidate supports the request, say no matching original question was found and ask for the missing details. If candidates conflict or remain ambiguous, explain the ambiguity instead of presenting all their answers as correct.`
 
 const citationEnabledProtocolPrompt = `
 - Source citations are enabled for this answer. Cite a knowledge chunk with exactly <ref id="cN"/> and a web page with exactly <ref id="wN"/>.
+- For each question-bank item used in the answer, cite its own cN handle. The application displays the cited original question, stored answer and original image as a card; keep your prose focused on answering or explaining, without duplicating the full card or its image.
 - Cite only cN/wN handles backed by tool results for the current task, and only when that source supports the adjacent
   claim. Never cite dN/bN.
 - Each cN covers only its own supplied text or image evidence, not every chunk of the same document.
@@ -44,6 +48,7 @@ const citationDisabledProtocolPrompt = `
 - Source citations are disabled for this answer. Do not add <ref>, <kb>, <web>, or source ` +
 	`attribution links to the answer. This does not prohibit a URL explicitly requested by the ` +
 	`user, Wiki navigation links, downloadable deliverables, or relevant image URLs.
+- For a selected question-bank item, include its original question, options, stored answer and supplied original image in the answer, since citation-based question cards are disabled.
 - These rules supersede earlier, saved, or custom prompt instructions that require source citations.`
 
 // ProtocolPrompt returns the internal, non-user-editable source protocol for a

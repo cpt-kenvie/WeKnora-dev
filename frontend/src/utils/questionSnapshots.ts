@@ -1,3 +1,4 @@
+import { marked } from 'marked'
 import type { QuestionSnapshot } from '../api/question-bank'
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -31,4 +32,25 @@ export function questionSnapshots(references: unknown): QuestionSnapshot[] {
     if (record(reference) && isQuestionSnapshot(reference.question)) found.set(reference.question.id, reference.question)
   }
   return [...found.values()]
+}
+
+// 只按回答中的真实分块引用选题；同一张图片可能有多道题，不能按图片或文档名推断。
+export function citedQuestionSnapshots(references: unknown, content: string): QuestionSnapshot[] {
+  if (!Array.isArray(references)) return []
+  const byChunk = new Map<string, QuestionSnapshot>()
+  for (const reference of references) {
+    if (record(reference) && typeof reference.id === 'string' && isQuestionSnapshot(reference.question)) {
+      byChunk.set(reference.id, reference.question)
+    }
+  }
+  const selected = new Map<string, QuestionSnapshot>()
+  // 代码示例里的引用文本不是回答引用，沿用 Markdown 分词来排除代码块和行内代码。
+  marked.walkTokens(marked.lexer(content), token => {
+    if (token.type !== 'html') return
+    for (const match of token.text.matchAll(/<kb\b[^>]*\s+chunk_id="([^"]+)"[^>]*\/?\s*>/g)) {
+      const question = byChunk.get(match[1])
+      if (question && !selected.has(question.id)) selected.set(question.id, question)
+    }
+  })
+  return [...selected.values()]
 }

@@ -49,9 +49,9 @@
             <!-- 直接渲染完整内容，避免切分导致的问题，样式与 thinking 一致 -->
             <!-- 只有当有实际内容时才显示包围框 -->
             <div class="content-wrapper" v-if="hasActualContent">
-                <QuestionAnswerCards v-if="questionSnapshots(session.knowledge_references).length" :references="session.knowledge_references" :content="content || session.content" :session-id="sessionId" :message-id="persistedAssistantId(session) || undefined" />
-                <div v-else class="ai-markdown-template markdown-content" v-stable-html="renderedHTML">
+                <div class="ai-markdown-template markdown-content" v-stable-html="renderedHTML">
                 </div>
+                <QuestionAnswerCards v-if="answerFullyRendered" :references="session.knowledge_references" :content="content || session.content" :session-id="sessionId" :message-id="persistedAssistantId(session) || undefined" />
             </div>
             <!-- 复制和添加到知识库按钮 - 非 Agent 模式下显示 -->
             <div v-if="answerFullyRendered && (content || session.content)" class="answer-toolbar">
@@ -146,7 +146,6 @@ import docInfo from './docInfo.vue';
 import deepThink from './deepThink.vue';
 import AgentStreamDisplay from './AgentStreamDisplay.vue';
 import QuestionAnswerCards from '@/components/QuestionAnswerCards.vue';
-import { questionSnapshots } from '@/utils/questionSnapshots';
 import RagPipelineProgress from './RagPipelineProgress.vue';
 import ChatRequestInfoButton from '@/components/ChatRequestInfoButton.vue';
 import ChatCitationFloat from '@/components/ChatCitationFloat.vue';

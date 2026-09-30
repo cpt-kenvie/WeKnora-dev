@@ -55,8 +55,20 @@ func (p *PluginMerge) OnEvent(ctx context.Context,
 	// Step 1: Select input
 	searchResult := p.selectInputResults(ctx, chatManage)
 
-	questionResults, _ := types.SelectQuestionResults(chatManage.Query, searchResult)
-	if len(questionResults) > 0 {
+	// 原题快照不能与相邻题合并，也不能因混合检索中出现题目而丢弃普通文档。
+	questionResults := make([]*types.SearchResult, 0)
+	documentResults := make([]*types.SearchResult, 0, len(searchResult))
+	seenQuestions := make(map[string]bool)
+	for _, result := range searchResult {
+		if result.Question == nil {
+			documentResults = append(documentResults, result)
+		} else if !seenQuestions[result.ID] {
+			seenQuestions[result.ID] = true
+			questionResults = append(questionResults, result)
+		}
+	}
+	searchResult = documentResults
+	if len(searchResult) == 0 && len(questionResults) > 0 {
 		chatManage.MergeResult = questionResults
 		return next()
 	}
@@ -99,7 +111,8 @@ func (p *PluginMerge) OnEvent(ctx context.Context,
 	mergedChunks = removePartialOverlaps(ctx, mergedChunks)
 
 	p.attachCitationSources(ctx, mergedChunks)
-	chatManage.MergeResult = mergedChunks
+	chatManage.MergeResult = append(mergedChunks, questionResults...)
+	sortSearchResultsDeterministically(chatManage.MergeResult)
 	return next()
 }
 

@@ -56,6 +56,7 @@ func prepareMessagesWithModelContext(
 			"chunk_index":       result.ChunkIndex,
 			"chunk_type":        result.ChunkType,
 			"content":           getEnrichedPassageForChat(ctx, result),
+			"question":          result.Question,
 		})
 	}
 	registry.RegisterSearchResults(knowledgeResults)

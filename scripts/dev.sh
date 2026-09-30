@@ -523,7 +523,17 @@ start_app() {
     if command -v air &> /dev/null; then
         log_success "检测到 Air，使用热重载模式启动..."
         log_info "修改 Go 代码后将自动重新编译和重启"
-        air
+        case "$(uname -s)" in
+            MINGW*|MSYS*|CYGWIN*)
+                # Windows 版 Air 使用 PowerShell，明确使用当前 Git Bash，避免误调用系统 bash。
+                local git_bash_path
+                git_bash_path="$(cygpath -m "$BASH")"
+                air --build.cmd "& '$git_bash_path' ./scripts/air-build.sh ./tmp/main.exe"
+                ;;
+            *)
+                air
+                ;;
+        esac
     else
         log_info "未检测到 Air，使用普通模式启动"
         log_warning "提示: 安装 Air 可以实现代码修改后自动重启"

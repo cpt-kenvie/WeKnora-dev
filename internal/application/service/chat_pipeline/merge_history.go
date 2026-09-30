@@ -57,6 +57,10 @@ func filterHistoryResults(
 
 	var filtered []*types.SearchResult
 	for _, r := range raw {
+		// 历史题目快照只用于回放；当前作答必须重新检索，避免继续使用已修改或停用题目的答案。
+		if r.Question != nil || r.ChunkType == types.ChunkTypeQuestion {
+			continue
+		}
 		if _, exists := existingIDs[r.ID]; exists {
 			continue
 		}

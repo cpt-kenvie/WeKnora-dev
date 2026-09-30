@@ -1004,6 +1004,7 @@ func (t *SearchKnowledgeTool) formatOutput(
 		}
 		if result.Question != nil {
 			row["question"] = result.Question
+			row["chunk_type"] = types.ChunkTypeQuestion
 		}
 		if images := chunkImageList(result.ImageInfo); len(images) > 0 {
 			row["images"] = images

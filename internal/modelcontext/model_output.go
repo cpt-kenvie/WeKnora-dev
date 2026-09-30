@@ -49,7 +49,11 @@ func (r *sourceRegistry) ModelOutput(result *types.ToolResult) string {
 			mode = "semantic"
 		}
 		output := r.modelKnowledgeOutput(mode, mapsValue(result.Data["results"]), result.Output)
-		return annotateSearchNotes(r.annotateModeFallbacks(output, result.Data), result.Data)
+		output = annotateSearchNotes(r.annotateModeFallbacks(output, result.Data), result.Data)
+		if only, _ := result.Data["question_bank_only"].(bool); only {
+			output += "\n<question_bank_scope>Only question banks were searched. If no retrieved question supports the request, report that no matching original question was found; do not guess a stored answer.</question_bank_scope>"
+		}
+		return output
 	case "knowledge_chunks_list":
 		return r.modelKnowledgeChunksOutput(result.Data, result.Output)
 	case "document_info":
@@ -247,7 +251,7 @@ func (r *sourceRegistry) modelChunksFromRows(mode string, rows []map[string]inte
 			ChunkIndex:      chunkIndex,
 			ChunkType:       chunkType,
 		})
-		chunks = append(chunks, modelChunk{
+		chunk := modelChunk{
 			handle:     chunkHandle,
 			docHandle:  r.RegisterDocument(knowledgeID),
 			kbHandle:   r.RegisterKnowledgeBase(kbID),
@@ -266,7 +270,18 @@ func (r *sourceRegistry) modelChunksFromRows(mode string, rows []map[string]inte
 			kbRealID:   kbID,
 			chunkReal:  chunkID,
 			inputOrder: idx,
-		})
+		}
+		if question := questionSnapshotValue(row["question"]); question != nil {
+			// 检索索引不含答案；模型必须读取已核对快照，不能自行填补或借用其他题的答案。
+			chunk.chunkType = types.ChunkTypeQuestion
+			chunk.content = question.SearchText()
+			chunk.answers = []string{question.AnswerText()}
+			chunk.images = nil
+			if question.ImageRef != "" {
+				chunk.images = []map[string]interface{}{{"url": question.ImageRef, "caption": "题目原图"}}
+			}
+		}
+		chunks = append(chunks, chunk)
 	}
 	return chunks
 }

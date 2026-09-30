@@ -1035,9 +1035,7 @@ func (e *AgentEngine) runReActIteration(
 
 	// 4. Observe: Add tool results to messages and write to context
 	state.RoundSteps = append(state.RoundSteps, step)
-	if e.answerQuestionToolResults(ctx, query, state, step, sessionID) {
-		return iterOutcomeBreak, nil
-	}
+	e.collectQuestionToolReferences(ctx, state, step, sessionID)
 	*messagesPtr = e.appendToolResults(*messagesPtr, step)
 	*messagesPtr = e.appendToolImages(ctx, *messagesPtr, step)
 	common.PipelineInfo(ctx, "Agent", "round_end", map[string]interface{}{

@@ -40,11 +40,6 @@ func (p *PluginChatCompletion) OnEvent(
 		"chat_model":     chatManage.ChatModelID,
 	})
 
-	if answer, ok := questionBankAnswer(chatManage); ok {
-		chatManage.ChatResponse = &types.ChatResponse{Content: answer, FinishReason: "stop"}
-		return next()
-	}
-
 	// Prepare chat model and options
 	chatModel, opt, err := prepareChatModel(ctx, p.modelService, chatManage)
 	if err != nil {

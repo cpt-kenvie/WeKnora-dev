@@ -379,9 +379,9 @@
             <div v-else-if="event.type === 'answer' && (event.done || (event.content && event.content.trim()))"
               class="answer-event">
               <div v-if="event.content && event.content.trim()" class="answer-content markdown-content">
-                <QuestionAnswerCards v-if="event.done && questionSnapshots(session.knowledge_references).length" :references="session.knowledge_references" :content="event.content" :session-id="sessionId" :message-id="persistedAssistantId(session) || undefined" />
-                <div v-else v-stable-html="renderAnswerContent(event === activeAnswerEventRef ? typedAnswer : event.content)">
+                <div v-stable-html="renderAnswerContent(event === activeAnswerEventRef ? typedAnswer : event.content)">
                 </div>
+                <QuestionAnswerCards v-if="event.done" :references="session.knowledge_references" :content="event.content" :session-id="sessionId" :message-id="persistedAssistantId(session) || undefined" />
               </div>
               <div v-if="answerFullyRendered && event.done && event.content && event.content.trim() && !embeddedMode"
                 class="answer-toolbar">
@@ -715,7 +715,6 @@ import { vStableHtml } from '@/directives/stableHtml';
 
 import BrowserToolDetails from './BrowserToolDetails.vue';
 import QuestionAnswerCards from '@/components/QuestionAnswerCards.vue';
-import { questionSnapshots } from '@/utils/questionSnapshots';
 import { browserToolTitle } from '@/utils/browserToolDisplay';
 import BrowserIcon from '@/components/icons/BrowserIcon.vue';
 const getToolIconName = getAgentToolIconName;
