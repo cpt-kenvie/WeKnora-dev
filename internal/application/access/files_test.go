@@ -73,6 +73,35 @@ func TestKBFilesRequireExactGrantAndBinding(t *testing.T) {
 	require.ErrorIs(t, err, bindings.err)
 }
 
+func TestQuestionBankOriginalRequiresCatalogAndLiveBinding(t *testing.T) {
+	base := callerContext()
+	grant := &KBAccess{
+		Caller: types.CallerFromContext(base), EffectiveTenantID: 2, Permission: types.OrgRoleViewer,
+		KnowledgeBase: &types.KnowledgeBase{ID: "bank", TenantID: 2, Type: types.KnowledgeBaseTypeQuestionBank},
+	}
+	ctx := grant.Context(base)
+	const ref = "resource://AbCdEfGhIjKlMnOpQrStUv"
+	const path = "storage://backend/local://2/source/original.jpg"
+	catalog := fileCatalog{&types.StoredResource{TenantID: 2, PhysicalPath: path}}
+	bindings := &fileBinding{allowed: true}
+	file, err := ResolveKBFile(ctx, grant, "bank", ref, catalog, bindings)
+	require.NoError(t, err)
+	require.Equal(t, path, file.Path)
+	bindings.allowed = false
+	_, err = ResolveKBFile(ctx, grant, "bank", ref, catalog, bindings)
+	require.ErrorIs(t, err, ErrForbidden)
+	bindings.allowed = true
+	_, err = ResolveKBFile(ctx, grant, "bank", path, fileCatalog{}, bindings)
+	require.ErrorIs(t, err, ErrForbidden, "未登记的原始路径不能绕过资源绑定")
+	catalog.resource.PhysicalPath = "local://3/source/original.jpg"
+	_, err = ResolveKBFile(ctx, grant, "bank", ref, catalog, bindings)
+	require.ErrorIs(t, err, ErrForbidden, "资源声明不能覆盖物理路径的租户归属")
+	catalog.resource.PhysicalPath = path
+	grant.KnowledgeBase.Type = types.KnowledgeBaseTypeDocument
+	_, err = ResolveKBFile(ctx, grant, "bank", ref, catalog, bindings)
+	require.ErrorIs(t, err, ErrForbidden, "普通知识库仍保留原有文件访问规则")
+}
+
 func TestMessageFilesRequireReferenceAndRecheckRevocation(t *testing.T) {
 	const ref = "resource://AbCdEfGhIjKlMnOpQrStUv"
 	messages := &fileMessages{

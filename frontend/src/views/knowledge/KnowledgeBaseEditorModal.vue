@@ -270,6 +270,7 @@
       <div v-if="!isFAQ && formData && currentSection === 'parser'" class="section">
         <KBParserSettings
           :parser-engine-rules="formData.chunkingConfig.parserEngineRules"
+          :question-bank="isQuestionBank"
           @update:parser-engine-rules="handleParserEngineRulesUpdate"
         />
       </div>
@@ -596,7 +597,8 @@ import { useEditorResourcesStore } from '@/stores/editorResources'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import KBModelConfig from './settings/KBModelConfig.vue'
-import KBParserSettings from './settings/KBParserSettings.vue'
+import KBParserSettings, { type ParserEngineRule } from './settings/KBParserSettings.vue'
+import { hasQuestionImageParser } from '@/utils/questionParser'
 import KBStorageSettings from './settings/KBStorageSettings.vue'
 import KBChunkingSettings from './settings/KBChunkingSettings.vue'
 import KBVectorStoreSettings from './settings/KBVectorStoreSettings.vue'
@@ -768,6 +770,7 @@ const navItems = computed(() => {
     items.push({ key: 'faq', icon: 'help-circle', label: t('knowledgeEditor.sidebar.faq') })
   } else if (formData.value?.type === 'question_bank') {
     items.push(
+      { key: 'parser', icon: 'file-search', label: t('settings.parserEngine') },
       { key: 'multimodal', icon: 'image', label: t('knowledgeEditor.sidebar.multimodal') },
       { key: 'storage', icon: 'cloud', label: t('knowledgeEditor.sidebar.storage') },
     )
@@ -860,7 +863,10 @@ watch(
   (newType, oldType) => {
     if (!formData.value) return
     if (newType === 'question_bank') {
-      formData.value.multimodalConfig.enabled = true
+      if (editorMode.value === 'create') {
+        formData.value.multimodalConfig.enabled = !hasQuestionImageParser(formData.value.chunkingConfig.parserEngineRules)
+          || !!formData.value.multimodalConfig.vllmModelId
+      }
       formData.value.indexingStrategy = { vectorEnabled: true, keywordEnabled: true, wikiEnabled: false, graphEnabled: false }
       currentSection.value = 'basic'
     }
@@ -1246,9 +1252,12 @@ watch(isWikiOnlyStrategy, (wikiOnly) => {
   }
 })
 
-const handleParserEngineRulesUpdate = (rules: any[]) => {
+const handleParserEngineRulesUpdate = (rules: ParserEngineRule[]) => {
   if (formData.value) {
     formData.value.chunkingConfig.parserEngineRules = rules?.length ? rules : undefined
+    if (isQuestionBank.value && !formData.value.multimodalConfig.vllmModelId) {
+      formData.value.multimodalConfig.enabled = !hasQuestionImageParser(rules)
+    }
   }
 }
 
@@ -1397,7 +1406,7 @@ const validateForm = (): boolean => {
     return false
   }
 
-  if (isQuestionBank.value && (!formData.value.multimodalConfig.enabled || !formData.value.multimodalConfig.vllmModelId)) {
+  if (isQuestionBank.value && !hasQuestionImageParser(formData.value.chunkingConfig.parserEngineRules) && (!formData.value.multimodalConfig.enabled || !formData.value.multimodalConfig.vllmModelId)) {
     MessagePlugin.warning(t('questionBank.modelRequired'))
     currentSection.value = 'multimodal'
     return false

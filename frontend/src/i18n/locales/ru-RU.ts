@@ -1,5 +1,9 @@
 export default {
   questionBank: {
+    expand: 'Развернуть вопрос',
+    collapse: 'Свернуть вопрос',
+    visualRecognition: 'Модель распознавания изображений',
+    parserDescription: 'Выберите способ распознавания для каждого формата изображения. Языковая модель преобразует распознанный текст в вопросы, варианты и ответы. Без модели распознавания изображений доступны только форматы с выбранным парсером.',
     sourceFailures: '{count} source images failed. Open source images to see the error and retry.',
     exactMatch: 'Original question found',
     candidates: 'Candidate questions. Check the wording and options; each answer belongs to its own question.',

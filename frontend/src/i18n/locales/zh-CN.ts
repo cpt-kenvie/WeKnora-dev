@@ -1,5 +1,9 @@
 export default {
   questionBank: {
+    expand: '展开题目',
+    collapse: '收起题目',
+    visualRecognition: '视觉模型识图',
+    parserDescription: '按图片格式选择识别方式。解析引擎识别出的题干、选项和答案会由语言模型整理入库。未配置视觉模型时，仅能上传已选择解析引擎的格式。',
     sourceFailures: '有 {count} 张图片识别失败，可在原图列表查看原因并重试。',
     exactMatch: '找到以下原题',
     candidates: '以下是候选原题，请核对题干和选项；各答案仅对应所在题目。',

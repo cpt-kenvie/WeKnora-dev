@@ -153,7 +153,7 @@ async function remove(question: Question) {
     <t-alert v-if="error" theme="error" :message="error" />
     <t-loading :loading="loading" class="question-bank__list">
       <div v-if="!questions.length && !loading" class="question-bank__empty"><t-icon name="file-search" size="36px" /><p>{{ t('questionBank.empty') }}</p></div>
-      <QuestionCard v-for="question in questions" :key="question.id" :question="question" show-image>
+      <QuestionCard v-for="question in questions" :key="question.id" :question="question" show-image collapsible>
         <template #actions>
           <t-tag :theme="question.review_status === 'ready' && question.is_enabled ? 'success' : 'warning'" variant="light">{{ t(question.review_status === 'needs_review' ? 'questionBank.needsReview' : question.is_enabled ? 'questionBank.ready' : 'questionBank.disabled') }}</t-tag>
           <t-button v-if="canEdit" size="small" variant="text" :disabled="question.index_status === 'processing'" @click="edit(question)">{{ t('questionBank.edit') }}</t-button>

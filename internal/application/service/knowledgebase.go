@@ -143,13 +143,8 @@ func (s *knowledgeBaseService) CreateKnowledgeBase(ctx context.Context,
 		kb.CreatorID = uid
 	}
 	kb.EnsureDefaults()
-	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
-		if !kb.VLMConfig.IsEnabled() || kb.VLMConfig.ModelID == "" {
-			return nil, fmt.Errorf("题库需要配置视觉识别模型")
-		}
-		if !kb.NeedsEmbeddingModel() || kb.EmbeddingModelID == "" {
-			return nil, fmt.Errorf("题库需要启用检索并配置向量模型")
-		}
+	if err := types.ValidateQuestionBankConfig(kb); err != nil {
+		return nil, apperrors.NewBadRequestError(err.Error())
 	}
 	applyTenantDefaultStorageProvider(ctx, kb)
 	if err := s.applyAndValidateStorageBackend(ctx, kb); err != nil {
@@ -583,8 +578,8 @@ func (s *knowledgeBaseService) UpdateKnowledgeBase(ctx context.Context,
 	kb.UpdatedAt = time.Now()
 	kb.EnsureDefaults()
 
-	if kb.Type == types.KnowledgeBaseTypeQuestionBank && (!kb.VLMConfig.IsEnabled() || kb.VLMConfig.ModelID == "" || !kb.NeedsEmbeddingModel() || kb.EmbeddingModelID == "") {
-		return nil, apperrors.NewBadRequestError("题库必须保留视觉识别和向量检索配置")
+	if err := types.ValidateQuestionBankConfig(kb); err != nil {
+		return nil, apperrors.NewBadRequestError(err.Error())
 	}
 	logger.Info(ctx, "Saving knowledge base update")
 	if err := s.repo.UpdateKnowledgeBase(ctx, kb); err != nil {

@@ -3653,7 +3653,7 @@ func (s *knowledgeService) ProcessDocument(ctx context.Context, t *asynq.Task) e
 	ctx = withAttempt(ctx, attempt)
 
 	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
-		return s.processQuestionImage(ctx, kb, knowledge, isLastRetry)
+		return s.processQuestionImage(ctx, kb, knowledge, eff, isLastRetry)
 	}
 
 	// 检查多模态配置（仅对文件导入）

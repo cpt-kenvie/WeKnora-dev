@@ -24,7 +24,13 @@ tmp_dir = "tmp"
   rerun = false
   rerun_delay = 500
   send_interrupt = false
-  stop_on_error = false
+  # 构建失败时停止运行，避免继续启动旧产物。
+  stop_on_error = true
+
+# Air 在 Windows 下使用 PowerShell，构建命令和产物需要单独适配。
+[build.windows]
+  cmd = "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ./scripts/air-build.ps1"
+  bin = "./tmp/main.exe"
 
 [color]
   app = ""

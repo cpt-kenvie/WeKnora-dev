@@ -1,16 +1,22 @@
 package router
 
 import (
+	"bytes"
 	"context"
+	"image"
+	"image/png"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	filesvc "github.com/Tencent/WeKnora/internal/application/service/file"
 	"github.com/Tencent/WeKnora/internal/middleware"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
@@ -461,6 +467,51 @@ func TestKBScopedFilesServesOwnerTenantPath(t *testing.T) {
 	}
 	if body := recorder.Body.String(); body != "shared-body" {
 		t.Fatalf("body = %q, want %q", body, "shared-body")
+	}
+}
+
+func TestQuestionBankServesOriginalImageBytes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	baseDir := t.TempDir()
+	t.Setenv("LOCAL_STORAGE_BASE_DIR", baseDir)
+	t.Setenv("STORAGE_TYPE", "local")
+	const ref = "resource://AbCdEfGhIjKlMnOpQrStUv"
+	const physical = "local://10008/source/original.png"
+	var original bytes.Buffer
+	if err := png.Encode(&original, image.NewRGBA(image.Rect(0, 0, 12, 18))); err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(baseDir, "10008", "source")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "original.png"), original.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	catalog := &stubResourceCatalog{
+		resource: &types.StoredResource{TenantID: 10008, PhysicalPath: physical, OriginalName: "原题.png"},
+		bound: func(_ context.Context, tenant uint64, kb, reference string) (bool, error) {
+			return tenant == 10008 && kb == "bank" && reference == ref, nil
+		},
+	}
+	engine := gin.New()
+	engine.GET("/knowledge-bases/:id/files", func(c *gin.Context) {
+		ctx := context.WithValue(c.Request.Context(), types.TenantIDContextKey, uint64(10008))
+		grant := &middleware.KBAccess{
+			KnowledgeBase: &types.KnowledgeBase{ID: "bank", TenantID: 10008, Type: types.KnowledgeBaseTypeQuestionBank},
+			Caller:        types.CallerFromContext(ctx), EffectiveTenantID: 10008, Permission: types.OrgRoleViewer,
+		}
+		c.Set(middleware.KBAccessContextKey, grant)
+		c.Request = c.Request.WithContext(grant.Context(ctx))
+		c.Next()
+	}, newKBScopedFileServeHandlerWithResources(
+		&stubTenantService{get: func(_ context.Context, id uint64) (*types.Tenant, error) { return &types.Tenant{ID: id}, nil }},
+		filesvc.NewLocalFileService(baseDir, ""), nil, catalog,
+	))
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/knowledge-bases/bank/files?file_path="+url.QueryEscape(ref), nil))
+	if w.Code != http.StatusOK || w.Header().Get("Content-Type") != "image/png" || !bytes.Equal(w.Body.Bytes(), original.Bytes()) {
+		t.Fatalf("原图响应不正确: status=%d type=%q bytes=%d", w.Code, w.Header().Get("Content-Type"), w.Body.Len())
 	}
 }
 

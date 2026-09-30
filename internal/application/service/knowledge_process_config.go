@@ -124,6 +124,9 @@ func validateDefaultFileImportRequirements(
 	fileType string,
 ) error {
 	fileType = normalizeFileExtension(fileType)
+	if IsImageType(fileType) && kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		return validateQuestionImageRequirements(kb, eff, fileType)
+	}
 	if IsImageType(fileType) && !eff.VLMConfig.IsEnabled() {
 		logger.Error(ctx, "VLM model is not configured")
 		return werrors.NewBadRequestError("上传图片文件需要设置VLM模型")
@@ -131,6 +134,20 @@ func validateDefaultFileImportRequirements(
 	if IsAudioType(fileType) && !kb.ASRConfig.IsASREnabled() {
 		logger.Error(ctx, "ASR model is not configured")
 		return werrors.NewBadRequestError("上传音频文件需要设置ASR语音识别模型")
+	}
+	return nil
+}
+
+// 解析引擎负责 OCR 时无需视觉模型；其他格式仍按各自规则校验，避免静默切换识别方式。
+func validateQuestionImageRequirements(kb *types.KnowledgeBase, eff types.EffectiveProcessConfig, fileType string) error {
+	if types.QuestionImageParserEngine(eff.ChunkingConfig, fileType) != "" {
+		if strings.TrimSpace(kb.SummaryModelID) == "" {
+			return werrors.NewBadRequestError("题库使用解析引擎识图时需要配置语言模型")
+		}
+		return nil
+	}
+	if !eff.VLMConfig.IsEnabled() || eff.VLMConfig.ModelID == "" {
+		return werrors.NewBadRequestError("该图片格式需要配置视觉识别模型，或在索引与解析中选择支持它的解析引擎")
 	}
 	return nil
 }
@@ -148,13 +165,10 @@ func resolveFileImportProcessConfig(
 	enableMultimodel *bool,
 ) (types.EffectiveProcessConfig, error) {
 	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
-		switch strings.ToLower(strings.TrimPrefix(fileType, ".")) {
-		case "jpg", "jpeg", "png", "webp", "bmp":
-		default:
+		if !types.IsQuestionImageType(fileType) {
 			return types.EffectiveProcessConfig{}, werrors.NewBadRequestError("题库仅支持 JPG、PNG、WebP、BMP 题目图片")
 		}
-	}
-	if err := validateImportFileType(fileType); err != nil {
+	} else if err := validateImportFileType(fileType); err != nil {
 		return types.EffectiveProcessConfig{}, err
 	}
 
@@ -188,6 +202,7 @@ func ValidateProcessOverrides(
 	hasImage := false
 	hasAudio := false
 	for _, ft := range fileTypes {
+		ft = normalizeFileExtension(ft)
 		if IsImageType(ft) {
 			hasImage = true
 		}
@@ -199,7 +214,15 @@ func ValidateProcessOverrides(
 	eff := ResolveProcessConfig(kb, overrides)
 
 	if hasImage {
-		if !eff.VLMConfig.IsEnabled() {
+		if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+			for _, fileType := range fileTypes {
+				if IsImageType(normalizeFileExtension(fileType)) {
+					if err := validateQuestionImageRequirements(kb, eff, fileType); err != nil {
+						return err
+					}
+				}
+			}
+		} else if !eff.VLMConfig.IsEnabled() {
 			return werrors.NewBadRequestError("上传图片文件需要设置VLM模型")
 		}
 	}

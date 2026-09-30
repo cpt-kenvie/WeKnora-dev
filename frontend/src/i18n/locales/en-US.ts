@@ -1,5 +1,9 @@
 export default {
   questionBank: {
+    expand: 'Expand question',
+    collapse: 'Collapse question',
+    visualRecognition: 'Vision model',
+    parserDescription: 'Choose a recognition method for each image format. A language model organizes the text recognized by the parser into questions, options, and answers. Without a vision model, only formats assigned to a parser can be uploaded.',
     sourceFailures: '{count} source images failed. Open source images to see the error and retry.',
     exactMatch: 'Original question found',
     candidates: 'Candidate questions. Check the wording and options; each answer belongs to its own question.',

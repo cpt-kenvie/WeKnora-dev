@@ -2,7 +2,7 @@
   <div class="kb-parser-settings" :class="{ 'kb-parser-settings--embedded': embedded }">
     <div v-if="!embedded" class="section-header">
       <h2>{{ $t('kbSettings.parser.title') }}</h2>
-      <p class="section-description">{{ $t('kbSettings.parser.description') }}</p>
+      <p class="section-description">{{ $t(questionBank ? 'questionBank.parserDescription' : 'kbSettings.parser.description') }}</p>
     </div>
 
     <div v-if="loading" class="loading-inline">
@@ -77,6 +77,7 @@ const { t } = useI18n()
 const editorResources = useEditorResourcesStore()
 
 function getEngineDisplayName(engineName: string): string {
+  if (props.questionBank && engineName === 'simple') return t('questionBank.visualRecognition')
   const key = `kbSettings.parser.engines.${engineName}.name`
   const translated = t(key)
   return translated !== key ? translated : engineName
@@ -105,6 +106,8 @@ interface Props {
   embedded?: boolean
   /** When set, only show file-type groups matching these extensions */
   relevantExtensions?: string[]
+  /** 题库只展示图片格式，并以视觉识别作为默认方式。 */
+  questionBank?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -133,6 +136,14 @@ const allFileTypes = computed(() => {
 })
 
 const fileTypeGroups = computed(() => {
+  if (props.questionBank) {
+    return [
+      { key: 'jpeg', label: 'JPG / JPEG', icon: 'image', extensions: ['jpg', 'jpeg'] },
+      { key: 'png', label: 'PNG', icon: 'image', extensions: ['png'] },
+      { key: 'bmp', label: 'BMP', icon: 'image', extensions: ['bmp'] },
+      { key: 'webp', label: 'WebP', icon: 'image', extensions: ['webp'] },
+    ]
+  }
   const ft = allFileTypes.value
   const groups: { key: string; label: string; icon: string; extensions: string[] }[] = []
 
@@ -188,7 +199,10 @@ const fileTypeGroups = computed(() => {
 function getEngineOptions(extensions: string[]): EngineOption[] {
   const raw: { name: string; desc: string; fileTypes: string[]; available: boolean; reason: string }[] = []
   for (const engine of parserEngines.value) {
-    const supports = extensions.some(ext => (engine.FileTypes || []).includes(ext))
+    if (props.questionBank && engine.Name === 'builtin') continue
+    const supports = props.questionBank
+      ? extensions.every(ext => (engine.FileTypes || []).includes(ext))
+      : extensions.some(ext => (engine.FileTypes || []).includes(ext))
     if (supports) {
       raw.push({
         name: engine.Name,
@@ -198,6 +212,10 @@ function getEngineOptions(extensions: string[]): EngineOption[] {
         reason: engine.UnavailableReason || '',
       })
     }
+  }
+  // 视觉识别不依赖 DocReader，解析引擎列表暂时不可用时仍可选择。
+  if (props.questionBank && !raw.some(engine => engine.name === 'simple')) {
+    raw.push({ name: 'simple', desc: '', fileTypes: extensions, available: true, reason: '' })
   }
   const defaultName = pickDefaultEngineName(raw, extensions)
   return raw
@@ -213,6 +231,7 @@ function pickDefaultEngineName(
   engines: { name: string; available: boolean }[],
   extensions: string[],
 ): string {
+  if (props.questionBank) return 'simple'
   const available = engines.filter(e => e.available)
   const simpleExts = new Set(['md', 'markdown', 'txt', 'csv', 'json'])
   const allSimple = extensions.length > 0 && extensions.every(ext => simpleExts.has(ext))
@@ -235,7 +254,7 @@ function getDefaultEngine(extensions: string[]): string {
 function getEngineForGroup(extensions: string[]): string {
   for (const rule of localEngineRules.value) {
     if (rule.file_types.some(ft => extensions.includes(ft))) {
-      return rule.engine
+      return props.questionBank && ['', 'builtin'].includes(rule.engine) ? 'simple' : rule.engine
     }
   }
   return getDefaultEngine(extensions)
@@ -315,7 +334,7 @@ async function loadEngines(force = false) {
 }
 
 function ensureCompleteRules() {
-  if (!parserEngines.value.length) return
+  if (!parserEngines.value.length || props.questionBank) return
   const complete = buildCompleteRules()
   if (complete.length && complete.length > localEngineRules.value.length) {
     localEngineRules.value = complete

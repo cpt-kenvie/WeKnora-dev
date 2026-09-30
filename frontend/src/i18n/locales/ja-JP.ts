@@ -1,5 +1,9 @@
 export default {
   questionBank: {
+    expand: '問題を展開',
+    collapse: '問題を折りたたむ',
+    visualRecognition: '画像認識モデル',
+    parserDescription: '画像形式ごとに認識方法を選択します。解析エンジンが認識した文字を言語モデルで問題・選択肢・正解に整理します。画像認識モデルが未設定の場合は、解析エンジンを指定した形式のみアップロードできます。',
     sourceFailures: '{count} source images failed. Open source images to see the error and retry.',
     exactMatch: 'Original question found',
     candidates: 'Candidate questions. Check the wording and options; each answer belongs to its own question.',

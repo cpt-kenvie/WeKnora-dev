@@ -74,7 +74,12 @@ func (s *knowledgeService) CreateKnowledgeFromFile(ctx context.Context,
 	// gates the same extension set, but this path must keep returning
 	// ErrInvalidFileType rather than the shared gate's localized message.
 	logger.Infof(ctx, "Checking file type: %s", fileName)
-	if !isValidFileType(fileName) {
+	// 题库使用独立图片白名单，避免通用文档规则误拒绝 BMP 和 WebP。
+	validFileType := isValidFileType(fileName)
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		validFileType = types.IsQuestionImageType(getFileType(fileName))
+	}
+	if !validFileType {
 		logger.Error(ctx, "Invalid file type")
 		return nil, ErrInvalidFileType
 	}

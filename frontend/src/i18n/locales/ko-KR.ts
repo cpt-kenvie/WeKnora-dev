@@ -1,5 +1,9 @@
 export default {
   questionBank: {
+    expand: '문제 펼치기',
+    collapse: '문제 접기',
+    visualRecognition: '비전 모델',
+    parserDescription: '이미지 형식별 인식 방법을 선택하세요. 언어 모델이 파서에서 인식한 텍스트를 문제, 선택지, 정답으로 정리합니다. 비전 모델이 없으면 파서가 지정된 형식만 업로드할 수 있습니다.',
     sourceFailures: '{count} source images failed. Open source images to see the error and retry.',
     exactMatch: 'Original question found',
     candidates: 'Candidate questions. Check the wording and options; each answer belongs to its own question.',

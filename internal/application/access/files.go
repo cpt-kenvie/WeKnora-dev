@@ -78,7 +78,12 @@ func ResolveKBFile(
 	if owner == 0 || (resource != nil && resource.TenantID != owner) {
 		return empty, ErrForbidden
 	}
-	if err := secutils.ValidateKBScopedStoragePath(file.Path, owner); err != nil {
+	validatePath := secutils.ValidateKBScopedStoragePath
+	if grant.KnowledgeBase.Type == types.KnowledgeBaseTypeQuestionBank && resource != nil {
+		// 题库展示上传原图；仅对已登记资源放行，后续仍须确认它绑定于当前有效知识库。
+		validatePath = secutils.ValidateStoragePathTenant
+	}
+	if err := validatePath(file.Path, owner); err != nil {
 		return empty, ErrForbidden
 	}
 	if bindings == nil {

@@ -314,11 +314,6 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 		kb.VLMConfig.ModelID = ""
 	}
 
-	if kb.Type == types.KnowledgeBaseTypeQuestionBank && !kb.VLMConfig.IsEnabled() {
-		c.Error(errors.NewBadRequestError("题库必须配置可用的视觉识别模型"))
-		return
-	}
-
 	// 处理ASR语音识别配置
 	kb.ASRConfig = types.ASRConfig{}
 	if req.ASRConfig != nil && req.ASRConfig.Enabled && req.ASRConfig.ModelID != "" {
@@ -343,6 +338,10 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 		kb.ChunkingConfig.Separators = req.DocumentSplitting.Separators
 	}
 	kb.ChunkingConfig.ParserEngineRules = req.DocumentSplitting.ParserEngineRules
+	if err := types.ValidateQuestionBankConfig(kb); err != nil {
+		c.Error(errors.NewBadRequestError(err.Error()))
+		return
+	}
 	kb.ChunkingConfig.EnableParentChild = req.DocumentSplitting.EnableParentChild
 	if req.DocumentSplitting.ParentChunkSize > 0 {
 		kb.ChunkingConfig.ParentChunkSize = req.DocumentSplitting.ParentChunkSize
