@@ -12,6 +12,8 @@ func RegisterQuestionBankRoutes(r *gin.RouterGroup, handler *handler.QuestionBan
 	}
 	questions := g.apiKeyGroup(r.Group("/knowledge-bases/:id/questions"), apiKeyIngest(apiKeyFullAccess()))
 	questions.With(apiKeyRetrieve(apiKeyFullAccess())).GET("", g.Viewer(), g.KBAccessRead("id"), handler.List)
+	questions.With(apiKeyRetrieve(apiKeyFullAccess())).GET("/paper-options", g.Viewer(), g.KBAccessRead("id"), handler.PaperOptions)
+	questions.With(apiKeyRetrieve(apiKeyFullAccess())).POST("/paper", g.Viewer(), g.KBAccessRead("id"), handler.ExportPaper)
 	questions.PUT("/:question_id", g.OwnedKBOrAdmin(), g.KBAccessWrite("id"), handler.Update)
 	questions.POST("/:question_id/reindex", g.OwnedKBOrAdmin(), g.KBAccessWrite("id"), handler.RetryIndex)
 	questions.DELETE("/:question_id", g.OwnedKBOrAdmin(), g.KBAccessWrite("id"), handler.Delete)

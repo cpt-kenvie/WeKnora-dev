@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"mime"
 	"net/http"
 
 	"github.com/Tencent/WeKnora/internal/application/service"
 	apperrors "github.com/Tencent/WeKnora/internal/errors"
+	"github.com/Tencent/WeKnora/internal/questionpaper"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/gin-gonic/gin"
 )
@@ -36,6 +38,31 @@ func (h *QuestionBankHandler) List(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": data})
+}
+
+func (h *QuestionBankHandler) PaperOptions(c *gin.Context) {
+	data, err := h.service.PaperOptions(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": data})
+}
+
+func (h *QuestionBankHandler) ExportPaper(c *gin.Context) {
+	var body types.QuestionPaperRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.Error(apperrors.NewBadRequestError("出卷参数不合法"))
+		return
+	}
+	data, filename, err := h.service.ExportPaper(c.Request.Context(), c.Param("id"), body)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.Header("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": filename}))
+	c.Header("Cache-Control", "no-store")
+	c.Data(http.StatusOK, questionpaper.ContentType, data)
 }
 
 func (h *QuestionBankHandler) Update(c *gin.Context) {

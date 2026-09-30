@@ -1,5 +1,23 @@
 export default {
   questionBank: {
+    paper: {
+      title: "試験を作成",
+      description: "問題形式と問題数を順に追加します。この問題集の確認済み問題から、重複せずランダムに出題します。",
+      countLabel: "{index} 行目の問題数",
+      typeLabel: "{index} 行目の問題形式",
+      unit: "問",
+      available: "確認済み {count} 問",
+      removeRow: "{index} 行目を削除",
+      addRow: "問題形式を追加",
+      includeAnswers: "解答を含める",
+      answersHint: "Word 文書の末尾に、問題番号順で解答を追加します。",
+      total: "合計 {count} 問",
+      invalidCount: "問題数は 1 以上の整数で入力してください。",
+      limit: "1 回に最大 {count} 問まで出題できます。",
+      shortage: "{type}は {requested} 問必要ですが、確認済みは {available} 問です。問題数を変更してください。",
+      export: "Word に出力",
+      exported: "試験を出力しました",
+    },
     expand: '問題を展開',
     collapse: '問題を折りたたむ',
     visualRecognition: '画像認識モデル',

@@ -1,5 +1,23 @@
 export default {
   questionBank: {
+    paper: {
+      title: "시험지 만들기",
+      description: "문제 유형과 수를 순서대로 추가하세요. 이 문제은행의 검토 완료 문제에서 중복 없이 무작위로 선택합니다.",
+      countLabel: "{index}번째 행 문제 수",
+      typeLabel: "{index}번째 행 문제 유형",
+      unit: "문항",
+      available: "검토 완료 {count}문항",
+      removeRow: "{index}번째 행 삭제",
+      addRow: "문제 유형 추가",
+      includeAnswers: "정답 포함",
+      answersHint: "Word 문서 끝에 문제 번호순으로 정답을 추가합니다.",
+      total: "총 {count}문항",
+      invalidCount: "문제 수를 1 이상의 정수로 입력하세요.",
+      limit: "시험지당 최대 {count}문항까지 가능합니다.",
+      shortage: "{type}: {requested}문항이 필요하지만 검토 완료 문제는 {available}문항입니다. 수를 조정하세요.",
+      export: "Word로 내보내기",
+      exported: "시험지를 내보냈습니다",
+    },
     expand: '문제 펼치기',
     collapse: '문제 접기',
     visualRecognition: '비전 모델',

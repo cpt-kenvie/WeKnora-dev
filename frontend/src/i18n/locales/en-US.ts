@@ -1,5 +1,23 @@
 export default {
   questionBank: {
+    paper: {
+      title: "Create paper",
+      description: "Add question types and counts in order. Questions are randomly selected from reviewed items in this bank without repeats.",
+      countLabel: "Question count for row {index}",
+      typeLabel: "Question type for row {index}",
+      unit: "questions",
+      available: "{count} reviewed",
+      removeRow: "Remove row {index}",
+      addRow: "Add question type",
+      includeAnswers: "Include answers",
+      answersHint: "Append answers to the end of the Word document in question number order.",
+      total: "{count} questions in total",
+      invalidCount: "Enter a positive whole number of questions.",
+      limit: "A paper can contain up to {count} questions.",
+      shortage: "{type}: {requested} requested, but only {available} reviewed questions are available. Adjust the count.",
+      export: "Export Word",
+      exported: "Paper exported",
+    },
     expand: 'Expand question',
     collapse: 'Collapse question',
     visualRecognition: 'Vision model',

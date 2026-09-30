@@ -1,5 +1,23 @@
 export default {
   questionBank: {
+    paper: {
+      title: "出卷",
+      description: "按顺序添加题型和数量，仅从当前题库已核对的题目中随机抽取，同一份试卷不会重复选题。",
+      countLabel: "第 {index} 行题目数量",
+      typeLabel: "第 {index} 行题型",
+      unit: "道",
+      available: "已核对 {count} 道",
+      removeRow: "删除第 {index} 行",
+      addRow: "添加题型",
+      includeAnswers: "导出带答案版本",
+      answersHint: "开启后，参考答案放在 Word 文末，按试卷题号排列。",
+      total: "共 {count} 道题",
+      invalidCount: "请输入大于 0 的整数题目数量。",
+      limit: "一份试卷最多 {count} 道题。",
+      shortage: "{type}共需 {requested} 道，已核对的题目仅有 {available} 道，请调整数量。",
+      export: "导出 Word",
+      exported: "试卷已导出",
+    },
     expand: '展开题目',
     collapse: '收起题目',
     visualRecognition: '视觉模型识图',

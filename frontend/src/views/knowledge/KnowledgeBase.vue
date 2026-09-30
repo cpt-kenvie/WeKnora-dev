@@ -56,6 +56,7 @@ import { useUploadTasksStore } from '@/stores/uploadTasks';
 import WikiBrowser from './wiki/WikiBrowser.vue';
 import ImageGallery from './gallery/ImageGallery.vue';
 import QuestionBankManager from './components/QuestionBankManager.vue';
+import QuestionPaperDialog from './components/QuestionPaperDialog.vue';
 import { getWikiStats } from '@/api/wiki';
 import {
   isKnowledgeParseInFlight,
@@ -93,6 +94,8 @@ const kbLoading = ref(false);
 const docListLoading = ref(true);
 const isFAQ = computed(() => (kbInfo.value?.type || '') === 'faq');
 const isQuestionBank = computed(() => kbInfo.value?.type === 'question_bank');
+const questionPaperVisible = ref(false);
+watch(kbId, () => { questionPaperVisible.value = false; });
 const isWiki = computed(() => !!kbInfo.value?.indexing_strategy?.wiki_enabled);
 const validTabs = ['documents', 'wiki', 'graph', 'gallery', 'questions'] as const
 type KbTab = typeof validTabs[number]
@@ -2309,8 +2312,11 @@ const handleKBEditorSuccess = (kbIdValue: string) => {
                 </t-tooltip>
               </div>
             </h2>
-            <!-- 标题行右侧的动作锚点：聚拢"信息"和"设置"两个圆形按钮。 -->
+            <!-- 标题行右侧集中展示当前知识库的操作。 -->
             <div class="kb-title-actions">
+              <t-button v-if="isQuestionBank" variant="outline" :disabled="!kbId" @click="questionPaperVisible = true">
+                <template #icon><t-icon name="file-add" /></template>{{ $t('questionBank.paper.title') }}
+              </t-button>
               <KBInfoPopover v-if="kbInfo && !authStore.isLiteMode" :kb-info="kbInfo"
                 :supported-file-types="[...supportedFileTypes]" />
               <t-tooltip v-if="canManage" :content="$t('knowledgeBase.settings')" placement="top">
@@ -2628,6 +2634,8 @@ const handleKBEditorSuccess = (kbIdValue: string) => {
       <FAQEntryManager v-if="kbId" :kb-id="kbId" />
     </div>
   </template>
+
+  <QuestionPaperDialog v-if="isQuestionBank && kbId" :key="kbId" v-model:visible="questionPaperVisible" :kb-id="kbId" :kb-name="kbInfo?.name || ''" />
 
   <!-- 知识库编辑器（创建/编辑统一组件） -->
   <KnowledgeBaseEditorModal :visible="uiStore.showKBEditorModal" :mode="uiStore.kbEditorMode"

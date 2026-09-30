@@ -34,7 +34,17 @@ export interface QuestionFilter {
   question_type?: QuestionType | ''
   review_status?: Question['review_status'] | ''
 }
+export interface QuestionPaperSection { question_type: QuestionType; count: number }
+export interface QuestionPaperOptions { counts: Record<QuestionType, number>; max_questions: number }
+export interface QuestionPaperRequest { sections: QuestionPaperSection[]; include_answers: boolean }
 interface Result<T> { success: boolean; data: T }
+
+export async function getQuestionPaperOptions(kbId: string, signal?: AbortSignal) {
+  return (await get<Result<QuestionPaperOptions>>(`/api/v1/knowledge-bases/${kbId}/questions/paper-options`, { signal })).data
+}
+export async function exportQuestionPaper(kbId: string, request: QuestionPaperRequest, signal?: AbortSignal): Promise<Blob> {
+  return post<Blob>(`/api/v1/knowledge-bases/${kbId}/questions/paper`, request, { responseType: 'blob', signal })
+}
 
 export async function listQuestions(kbId: string, params: QuestionFilter) {
   return (await get<Result<{ items: Question[]; total: number; processing_sources: number; failed_sources: number }>>(`/api/v1/knowledge-bases/${kbId}/questions`, { params })).data
