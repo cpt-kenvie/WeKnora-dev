@@ -55,6 +55,12 @@ func (p *PluginMerge) OnEvent(ctx context.Context,
 	// Step 1: Select input
 	searchResult := p.selectInputResults(ctx, chatManage)
 
+	questionResults, _ := types.SelectQuestionResults(chatManage.Query, searchResult)
+	if len(questionResults) > 0 {
+		chatManage.MergeResult = questionResults
+		return next()
+	}
+
 	// Step 2: Initial dedup
 	searchResult = p.dedup(ctx, "dedup_summary", searchResult)
 

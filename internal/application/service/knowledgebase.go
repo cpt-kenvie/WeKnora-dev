@@ -52,6 +52,7 @@ type knowledgeBaseService struct {
 	audit           interfaces.AuditLogService
 	resourceCatalog interfaces.ResourceCatalog
 	wikiRepo        interfaces.WikiPageRepository
+	questionRepo    *repository.QuestionRepository
 }
 
 // NewKnowledgeBaseService creates a new knowledge base service
@@ -76,6 +77,7 @@ func NewKnowledgeBaseService(repo interfaces.KnowledgeBaseRepository,
 	audit interfaces.AuditLogService,
 	resourceCatalog interfaces.ResourceCatalog,
 	wikiRepo interfaces.WikiPageRepository,
+	questionRepo *repository.QuestionRepository,
 ) interfaces.KnowledgeBaseService {
 	return &knowledgeBaseService{
 		repo:            repo,
@@ -99,6 +101,7 @@ func NewKnowledgeBaseService(repo interfaces.KnowledgeBaseRepository,
 		audit:           audit,
 		resourceCatalog: resourceCatalog,
 		wikiRepo:        wikiRepo,
+		questionRepo:    questionRepo,
 	}
 }
 
@@ -140,6 +143,14 @@ func (s *knowledgeBaseService) CreateKnowledgeBase(ctx context.Context,
 		kb.CreatorID = uid
 	}
 	kb.EnsureDefaults()
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		if !kb.VLMConfig.IsEnabled() || kb.VLMConfig.ModelID == "" {
+			return nil, fmt.Errorf("题库需要配置视觉识别模型")
+		}
+		if !kb.NeedsEmbeddingModel() || kb.EmbeddingModelID == "" {
+			return nil, fmt.Errorf("题库需要启用检索并配置向量模型")
+		}
+	}
 	applyTenantDefaultStorageProvider(ctx, kb)
 	if err := s.applyAndValidateStorageBackend(ctx, kb); err != nil {
 		return nil, err
@@ -371,7 +382,7 @@ func (s *knowledgeBaseService) ListKnowledgeBases(ctx context.Context) ([]*types
 
 		// Get knowledge count
 		switch kb.Type {
-		case types.KnowledgeBaseTypeDocument:
+		case types.KnowledgeBaseTypeDocument, types.KnowledgeBaseTypeQuestionBank:
 			knowledgeCount, err := s.kgRepo.CountKnowledgeByKnowledgeBaseID(ctx, tenantID, kb.ID)
 			if err != nil {
 				logger.Warnf(ctx, "Failed to get knowledge count for knowledge base %s: %v", kb.ID, err)
@@ -425,7 +436,7 @@ func (s *knowledgeBaseService) ListKnowledgeBasesByTenantID(ctx context.Context,
 	for _, kb := range kbs {
 		kb.EnsureDefaults()
 		switch kb.Type {
-		case types.KnowledgeBaseTypeDocument:
+		case types.KnowledgeBaseTypeDocument, types.KnowledgeBaseTypeQuestionBank:
 			if cnt, err := s.kgRepo.CountKnowledgeByKnowledgeBaseID(ctx, tenantID, kb.ID); err == nil {
 				kb.KnowledgeCount = cnt
 			}
@@ -459,7 +470,7 @@ func (s *knowledgeBaseService) FillKnowledgeBaseCounts(ctx context.Context, kb *
 	tenantID := kb.TenantID
 	kb.EnsureDefaults()
 	switch kb.Type {
-	case types.KnowledgeBaseTypeDocument:
+	case types.KnowledgeBaseTypeDocument, types.KnowledgeBaseTypeQuestionBank:
 		if cnt, err := s.kgRepo.CountKnowledgeByKnowledgeBaseID(ctx, tenantID, kb.ID); err == nil {
 			kb.KnowledgeCount = cnt
 		}
@@ -572,6 +583,9 @@ func (s *knowledgeBaseService) UpdateKnowledgeBase(ctx context.Context,
 	kb.UpdatedAt = time.Now()
 	kb.EnsureDefaults()
 
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank && (!kb.VLMConfig.IsEnabled() || kb.VLMConfig.ModelID == "" || !kb.NeedsEmbeddingModel() || kb.EmbeddingModelID == "") {
+		return nil, apperrors.NewBadRequestError("题库必须保留视觉识别和向量检索配置")
+	}
 	logger.Info(ctx, "Saving knowledge base update")
 	if err := s.repo.UpdateKnowledgeBase(ctx, kb); err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{

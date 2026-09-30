@@ -193,20 +193,37 @@ func (s *knowledgeBaseService) hybridSearchCandidates(ctx context.Context,
 		return nil, err
 	}
 
+	// 主知识库必须位于已授权范围中，精确匹配也不能绕过该约束。
+	kb := pickPrimary(kbs, id)
+	if kb == nil {
+		return nil, apperrors.NewNotFoundError("knowledge base not found")
+	}
+
+	// 原题精确匹配在授权之后执行，不依赖向量模型和重排阈值。
+	exact := []*types.IndexWithScore{}
+	for _, bank := range kbs {
+		if bank.Type != types.KnowledgeBaseTypeQuestionBank {
+			continue
+		}
+		questions, err := s.questionRepo.ExactCandidates(ctx, bank, params)
+		if err != nil {
+			return nil, err
+		}
+		for _, q := range questions {
+			exact = append(exact, &types.IndexWithScore{ID: q.ChunkID, SourceID: q.ChunkID, SourceType: types.ChunkSourceType, ChunkID: q.ChunkID,
+				KnowledgeID: q.KnowledgeID, KnowledgeBaseID: q.KnowledgeBaseID, Content: q.SearchText(), Score: 1, IsEnabled: true, MatchType: types.MatchTypeKeywords})
+		}
+	}
+	if len(exact) > 0 {
+		return exact, nil
+	}
+
 	// Explicit embedding-model consistency check. Multi-KB searches that
 	// span different embedding spaces would otherwise silently produce
 	// meaningless cross-model scores. Same-model wiki/graph KBs are
 	// tolerated — see validateSameEmbeddingModel for the carve-out.
 	if err := s.validateSameEmbeddingModel(ctx, kbs); err != nil {
 		return nil, err
-	}
-
-	// Resolve the primary KB — embedding model + FAQ type come from this
-	// one. Miss → 404 (no kbs[0] fallback; a silent pivot to an arbitrary
-	// KB would hide caller bugs and reveal foreign KB metadata).
-	kb := pickPrimary(kbs, id)
-	if kb == nil {
-		return nil, apperrors.NewNotFoundError("knowledge base not found")
 	}
 
 	// Over-retrieval (existing rule, preserved): 5x per-KB matchCount,

@@ -102,6 +102,11 @@ func (w *Rewriter) CopyReferences(ctx context.Context, refs []*types.SearchResul
 		rewritten.Content = w.String(ctx, ref.Content)
 		rewritten.MatchedContent = w.String(ctx, ref.MatchedContent)
 		rewritten.ImageInfo = w.String(ctx, ref.ImageInfo)
+		if ref.Question != nil {
+			snapshot := *ref.Question
+			snapshot.ImageRef = w.Ref(ctx, snapshot.ImageRef)
+			rewritten.Question = &snapshot
+		}
 		out[i] = &rewritten
 	}
 	return out

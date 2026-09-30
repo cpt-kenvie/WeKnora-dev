@@ -637,6 +637,10 @@ func (s *knowledgeService) cleanupKnowledgeResources(ctx context.Context, knowle
 	if err != nil {
 		return fmt.Errorf("resolve cleanup knowledge base: %w", err)
 	}
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		// 重新识别逐题替换版本，保留原图、人工修正及已预留的索引额度。
+		return nil
+	}
 	tenantInfo := ctx.Value(types.TenantInfoContextKey).(*types.Tenant)
 	if knowledge.EmbeddingModelID != "" {
 		retrieveEngine, err := retriever.CreateRetrieveEngineForKB(

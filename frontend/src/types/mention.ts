@@ -9,7 +9,7 @@ export interface MentionItem {
   type: MentionItemType;
   group?: string;
   description?: string;
-  kbType?: 'document' | 'faq';
+  kbType?: 'document' | 'faq' | 'question_bank';
   count?: number;
   kbName?: string;
   kbId?: string;
@@ -28,7 +28,7 @@ export interface MentionRequestItem {
   id: string;
   name: string;
   type: MentionItemType;
-  kb_type?: 'document' | 'faq';
+  kb_type?: 'document' | 'faq' | 'question_bank';
   kb_id?: string;
   kb_name?: string;
   service_id?: string;

@@ -159,6 +159,8 @@ type PipelineContext struct {
 // for a chat pipeline execution. It embeds PipelineRequest (immutable config),
 // PipelineState (mutable intermediate data), and PipelineContext (runtime handles).
 type ChatManage struct {
+	// QuestionBankOnly 确保题库未命中时不会交给模型猜答案。
+	QuestionBankOnly bool `json:"-"`
 	PipelineRequest
 	PipelineState
 	PipelineContext

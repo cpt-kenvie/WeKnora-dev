@@ -58,6 +58,10 @@ func (p *PluginRerank) OnEvent(ctx context.Context,
 		})
 		return next()
 	}
+	if len(chatManage.SearchResult) > 0 && chatManage.SearchResult[0].Question != nil && types.NormalizeQuestionStem(chatManage.Query) == types.NormalizeQuestionStem(chatManage.SearchResult[0].Question.Stem) {
+		chatManage.RerankResult = chatManage.SearchResult
+		return next()
+	}
 	if chatManage.RerankModelID == "" {
 		diag.Outcome = types.RerankOutcomeNoModel
 		pipelineWarn(ctx, "Rerank", "skip", map[string]interface{}{

@@ -26,6 +26,9 @@ func (s *chunkService) writableChunk(ctx context.Context, id string) (*types.Chu
 	if chunk.KnowledgeBaseID != knowledge.KnowledgeBaseID {
 		return nil, apperrors.NewForbiddenError("chunk does not belong to its knowledge base")
 	}
+	if chunk.ChunkType == types.ChunkTypeQuestion {
+		return nil, apperrors.NewBadRequestError("请在题库中编辑或删除题目")
+	}
 	copyOfChunk := *chunk
 	return &copyOfChunk, nil
 }
@@ -70,12 +73,18 @@ func (s *chunkService) validateChunkWrites(ctx context.Context, chunks []*types.
 		}
 	}
 	for _, chunk := range chunks {
+		if chunk.ChunkType == types.ChunkTypeQuestion {
+			return apperrors.NewBadRequestError("请通过题库维护题目")
+		}
 		parent := parents[chunk.KnowledgeID]
 		if parent == nil || parent.TenantID != chunk.TenantID || parent.KnowledgeBaseID != chunk.KnowledgeBaseID {
 			return apperrors.NewForbiddenError("chunk does not belong to its knowledge document")
 		}
 		if !create {
 			stored := storedByID[chunk.ID]
+			if stored != nil && stored.ChunkType == types.ChunkTypeQuestion {
+				return apperrors.NewBadRequestError("请通过题库维护题目")
+			}
 			if stored == nil || stored.ID != chunk.ID || !sameChunkDocument(stored, chunk) {
 				return apperrors.NewForbiddenError("chunk ownership cannot be changed")
 			}

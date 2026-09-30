@@ -36,6 +36,7 @@ export type DisplayType =
 
 // Search result item
 export interface SearchResultItem {
+    question?: import('@/api/question-bank').QuestionSnapshot;
     result_index: number;
     chunk_id: string;
     content: string;

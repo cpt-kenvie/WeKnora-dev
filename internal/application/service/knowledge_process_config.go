@@ -147,6 +147,13 @@ func resolveFileImportProcessConfig(
 	processOverrides *types.KnowledgeProcessOverrides,
 	enableMultimodel *bool,
 ) (types.EffectiveProcessConfig, error) {
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		switch strings.ToLower(strings.TrimPrefix(fileType, ".")) {
+		case "jpg", "jpeg", "png", "webp", "bmp":
+		default:
+			return types.EffectiveProcessConfig{}, werrors.NewBadRequestError("题库仅支持 JPG、PNG、WebP、BMP 题目图片")
+		}
+	}
 	if err := validateImportFileType(fileType); err != nil {
 		return types.EffectiveProcessConfig{}, err
 	}

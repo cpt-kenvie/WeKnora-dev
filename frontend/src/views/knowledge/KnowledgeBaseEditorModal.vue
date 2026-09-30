@@ -35,12 +35,13 @@
               >
                 <t-radio-button value="document">{{ $t('knowledgeEditor.basic.typeDocument') }}</t-radio-button>
                 <t-radio-button value="faq">{{ $t('knowledgeEditor.basic.typeFAQ') }}</t-radio-button>
+                <t-radio-button value="question_bank">{{ $t('questionBank.title') }}</t-radio-button>
               </t-radio-group>
-              <p class="form-tip">{{ $t('knowledgeEditor.basic.typeDescription') }}</p>
+              <p class="form-tip">{{ isQuestionBank ? $t('questionBank.typeDescription') : $t('knowledgeEditor.basic.typeDescription') }}</p>
             </div>
 
             <!-- 索引策略 (紧跟类型选择) -->
-            <div v-if="!isFAQ" class="form-item">
+            <div v-if="!isFAQ && !isQuestionBank" class="form-item">
               <label class="form-label required">{{ $t('knowledgeEditor.indexing.title') }}</label>
               <p class="form-tip">{{ $t('knowledgeEditor.indexing.description') }}</p>
               <div class="indexing-checks" :class="{ 'is-locked': isIndexingLocked }"
@@ -633,7 +634,7 @@ const props = defineProps<{
   visible: boolean
   mode: 'create' | 'edit'
   kbId?: string
-  initialType?: 'document' | 'faq'
+  initialType?: 'document' | 'faq' | 'question_bank'
 }>()
 
 // Emits
@@ -765,6 +766,11 @@ const navItems = computed(() => {
   ]
   if (formData.value?.type === 'faq') {
     items.push({ key: 'faq', icon: 'help-circle', label: t('knowledgeEditor.sidebar.faq') })
+  } else if (formData.value?.type === 'question_bank') {
+    items.push(
+      { key: 'multimodal', icon: 'image', label: t('knowledgeEditor.sidebar.multimodal') },
+      { key: 'storage', icon: 'cloud', label: t('knowledgeEditor.sidebar.storage') },
+    )
   } else {
     items.push(
       { key: 'parser', icon: 'file-search', label: t('settings.parserEngine') },
@@ -829,6 +835,7 @@ const advancedSettingsRef = ref<InstanceType<typeof KBAdvancedSettings>>()
 // 表单数据
 const formData = ref<any>(null)
 const isFAQ = computed(() => formData.value?.type === 'faq')
+const isQuestionBank = computed(() => formData.value?.type === 'question_bank')
 
 const kbCreateNeedsEmbedding = computed(() => {
   if (!formData.value || formData.value.type === 'faq') return false
@@ -852,6 +859,11 @@ watch(
   () => formData.value?.type,
   (newType, oldType) => {
     if (!formData.value) return
+    if (newType === 'question_bank') {
+      formData.value.multimodalConfig.enabled = true
+      formData.value.indexingStrategy = { vectorEnabled: true, keywordEnabled: true, wikiEnabled: false, graphEnabled: false }
+      currentSection.value = 'basic'
+    }
     if (newType === 'faq') {
       if (!formData.value.faqConfig) {
         formData.value.faqConfig = { indexMode: 'question_only', questionIndexMode: 'separate' }
@@ -866,7 +878,7 @@ watch(
 )
 
 // 初始化表单数据
-const initFormData = (type: 'document' | 'faq' = 'document') => {
+const initFormData = (type: 'document' | 'faq' | 'question_bank' = 'document') => {
   return {
     type,
     name: '',
@@ -1021,7 +1033,7 @@ const loadKBData = async (
     kbTenantId.value = Number((kb as any).tenant_id || 0)
 
     // 设置表单数据
-    const kbType = (kb.type as 'document' | 'faq') || 'document'
+    const kbType = (kb.type as 'document' | 'faq' | 'question_bank') || 'document'
     formData.value = {
       type: kbType,
       name: kb.name || '',
@@ -1382,6 +1394,12 @@ const validateForm = (): boolean => {
   if (!formData.value.modelConfig.llmModelId) {
     MessagePlugin.warning(t('knowledgeEditor.messages.summaryRequired'))
     currentSection.value = 'models'
+    return false
+  }
+
+  if (isQuestionBank.value && (!formData.value.multimodalConfig.enabled || !formData.value.multimodalConfig.vllmModelId)) {
+    MessagePlugin.warning(t('questionBank.modelRequired'))
+    currentSection.value = 'multimodal'
     return false
   }
 

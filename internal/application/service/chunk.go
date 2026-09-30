@@ -420,8 +420,12 @@ func (s *chunkService) DeleteChunks(ctx context.Context, ids []string) error {
 // Returns:
 //   - error: Any error encountered during bulk deletion
 func (s *chunkService) DeleteChunksByKnowledgeID(ctx context.Context, knowledgeID string) error {
-	if _, err := loadKnowledgeWriteBatch(ctx, s.knowledgeRepo, s.kbRepository, []string{knowledgeID}); err != nil {
+	_, kb, err := loadKnowledgeWrite(ctx, s.knowledgeRepo, s.kbRepository, knowledgeID)
+	if err != nil {
 		return err
+	}
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		return fmt.Errorf("请在题库中删除题目或原图")
 	}
 	logger.Info(ctx, "Start deleting all chunks by knowledge ID")
 	logger.Infof(ctx, "Knowledge ID: %s", knowledgeID)
@@ -429,7 +433,7 @@ func (s *chunkService) DeleteChunksByKnowledgeID(ctx context.Context, knowledgeI
 	tenantID := types.MustTenantIDFromContext(ctx)
 	logger.Infof(ctx, "Tenant ID: %d", tenantID)
 
-	err := s.chunkRepository.DeleteChunksByKnowledgeID(ctx, tenantID, knowledgeID)
+	err = s.chunkRepository.DeleteChunksByKnowledgeID(ctx, tenantID, knowledgeID)
 	if err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{
 			"knowledge_id": knowledgeID,

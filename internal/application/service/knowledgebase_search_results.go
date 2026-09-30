@@ -241,6 +241,9 @@ func (s *knowledgeBaseService) assembleSearchResults(
 
 		score := idx.scores[chunk.ID]
 		if knowledge, ok := knowledgeMap[chunk.KnowledgeID]; ok {
+			if chunk.ChunkType == types.ChunkTypeQuestion && (knowledge.ParseStatus != types.ParseStatusCompleted || knowledge.EnableStatus != "enabled") {
+				continue
+			}
 			matchType := idx.matchTypes[chunk.ID]
 			matchedContent := idx.matchedContents[chunk.ID]
 			searchResults = append(searchResults, s.buildSearchResult(chunk, knowledge, score, matchType, matchedContent))
@@ -259,7 +262,7 @@ func (s *knowledgeBaseService) assembleSearchResults(
 	// Second pass: Add enrichment chunks (parent, nearby, relation)
 	if !skipEnrichment {
 		for chunkID, chunk := range chunkMap {
-			if addedChunkIDs[chunkID] || !s.isSearchableChunk(chunk) {
+			if addedChunkIDs[chunkID] || chunk.ChunkType == types.ChunkTypeQuestion || !s.isSearchableChunk(chunk) {
 				continue
 			}
 
@@ -356,6 +359,7 @@ func (s *knowledgeBaseService) buildSearchResult(chunk *types.Chunk,
 		KnowledgeDescription:    knowledge.Description,
 		KnowledgeCustomMetadata: knowledge.CustomMetadataText(),
 		ChunkMetadata:           chunk.Metadata,
+		Question:                types.QuestionFromChunk(chunk.ChunkType, chunk.Metadata),
 		ContextHeader:           chunk.ContextHeader,
 		MatchedContent:          matchedContent,
 		KnowledgeBaseID:         knowledge.KnowledgeBaseID,
@@ -377,7 +381,7 @@ func (s *knowledgeBaseService) isSearchableChunk(chunk *types.Chunk) bool {
 	return slices.Contains([]types.ChunkType{
 		types.ChunkTypeText, types.ChunkTypeSummary,
 		types.ChunkTypeTableColumn, types.ChunkTypeTableSummary,
-		types.ChunkTypeFAQ,
+		types.ChunkTypeFAQ, types.ChunkTypeQuestion,
 		types.ChunkTypeImageOCR, types.ChunkTypeImageCaption,
 	}, chunk.ChunkType)
 }

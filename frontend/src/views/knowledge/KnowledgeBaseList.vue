@@ -216,7 +216,7 @@
                 <div class="bottom-left">
                   <div class="feature-badges">
                     <t-tooltip
-                      :content="kb.type === 'faq' ? $t('knowledgeEditor.basic.typeFAQ') : $t('knowledgeEditor.basic.typeDocument')"
+                      :content="kb.type === 'question_bank' ? $t('questionBank.title') : kb.type === 'faq' ? $t('knowledgeEditor.basic.typeFAQ') : $t('knowledgeEditor.basic.typeDocument')"
                       placement="top">
                       <div class="feature-badge"
                         :class="{ 'type-document': (kb.type || 'document') === 'document', 'type-faq': kb.type === 'faq' }">
@@ -293,7 +293,7 @@
                 <div class="bottom-left">
                   <div class="feature-badges">
                     <t-tooltip
-                      :content="kb.type === 'faq' ? $t('knowledgeEditor.basic.typeFAQ') : $t('knowledgeEditor.basic.typeDocument')"
+                      :content="kb.type === 'question_bank' ? $t('questionBank.title') : kb.type === 'faq' ? $t('knowledgeEditor.basic.typeFAQ') : $t('knowledgeEditor.basic.typeDocument')"
                       placement="top">
                       <div class="feature-badge"
                         :class="{ 'type-document': (kb.type || 'document') === 'document', 'type-faq': kb.type === 'faq' }">
@@ -447,7 +447,7 @@
                 <div class="bottom-left">
                   <div class="feature-badges">
                     <t-tooltip
-                      :content="kb.type === 'faq' ? $t('knowledgeEditor.basic.typeFAQ') : $t('knowledgeEditor.basic.typeDocument')"
+                      :content="kb.type === 'question_bank' ? $t('questionBank.title') : kb.type === 'faq' ? $t('knowledgeEditor.basic.typeFAQ') : $t('knowledgeEditor.basic.typeDocument')"
                       placement="top">
                       <div class="feature-badge"
                         :class="{ 'type-document': (kb.type || 'document') === 'document', 'type-faq': kb.type === 'faq' }">
@@ -573,7 +573,7 @@
                 <div class="bottom-left">
                   <div class="feature-badges">
                     <t-tooltip
-                      :content="shared.knowledge_base.type === 'faq' ? $t('knowledgeEditor.basic.typeFAQ') : $t('knowledgeEditor.basic.typeDocument')"
+                      :content="shared.knowledge_base.type === 'question_bank' ? $t('questionBank.title') : shared.knowledge_base.type === 'faq' ? $t('knowledgeEditor.basic.typeFAQ') : $t('knowledgeEditor.basic.typeDocument')"
                       placement="top">
                       <div class="feature-badge"
                         :class="{ 'type-document': (shared.knowledge_base.type || 'document') === 'document', 'type-faq': shared.knowledge_base.type === 'faq' }">
@@ -787,7 +787,7 @@ interface KB {
   pinned_at?: string;
   embedding_model_id?: string;
   summary_model_id?: string;
-  type?: 'document' | 'faq';
+  type?: 'document' | 'faq' | 'question_bank';
   showMore?: boolean;
   vlm_config?: { enabled?: boolean; model_id?: string };
   extract_config?: { enabled?: boolean };

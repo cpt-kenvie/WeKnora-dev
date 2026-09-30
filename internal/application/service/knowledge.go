@@ -48,6 +48,7 @@ var (
 // knowledgeService implements the knowledge service interface
 // service 实现知识服务接口
 type knowledgeService struct {
+	questionBank    *QuestionBankService
 	config          *config.Config
 	retrieveEngine  interfaces.RetrieveEngineRegistry
 	ownership       retriever.TenantStoreOwnership
@@ -121,8 +122,10 @@ func NewKnowledgeService(
 	taskPendingRepo interfaces.TaskPendingOpsRepository,
 	spanTracker SpanTracker,
 	audit interfaces.AuditLogService,
+	questionBank *QuestionBankService,
 ) (interfaces.KnowledgeService, error) {
 	return &knowledgeService{
+		questionBank:    questionBank,
 		config:          config,
 		repo:            repo,
 		kbService:       kbService,

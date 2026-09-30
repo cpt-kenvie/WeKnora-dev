@@ -251,7 +251,14 @@ func (t *SearchKnowledgeTool) Execute(ctx context.Context, args json.RawMessage)
 
 	ranked := deduplicated
 	rerankRejected := 0
-	if t.rerankModel != nil && len(deduplicated) > 0 {
+	hasExactQuestion := false
+	for _, r := range deduplicated {
+		if r.Question != nil && types.NormalizeQuestionStem(r.Question.Stem) == types.NormalizeQuestionStem(query) {
+			hasExactQuestion = true
+			break
+		}
+	}
+	if t.rerankModel != nil && len(deduplicated) > 0 && !hasExactQuestion {
 		reranked, err := t.rerankResults(ctx, query, deduplicated, mode == SearchModeKeyword)
 		if err != nil {
 			logger.Warnf(ctx, "[Tool][SearchKnowledge] Rerank failed, using retrieval order: %v", err)
@@ -311,6 +318,13 @@ func (t *SearchKnowledgeTool) Execute(ctx context.Context, args json.RawMessage)
 	if len(searchFailures) > 0 {
 		result.Data["partial_failures"] = searchFailures
 	}
+	questionBankOnly := len(kbIDs) > 0
+	for _, id := range kbIDs {
+		if kbTypeMap[id] != types.KnowledgeBaseTypeQuestionBank {
+			questionBankOnly = false
+		}
+	}
+	result.Data["question_bank_only"] = questionBankOnly
 	annotateModeFallback(result.Data, mode, kbModes)
 	if rerankRejected > 0 {
 		result.Data["rerank_rejected"] = rerankRejected
@@ -987,6 +1001,9 @@ func (t *SearchKnowledgeTool) formatOutput(
 			"source_query":        result.SourceQuery,
 			"query_type":          result.QueryType,
 			"knowledge_base_type": result.KnowledgeBaseType,
+		}
+		if result.Question != nil {
+			row["question"] = result.Question
 		}
 		if images := chunkImageList(result.ImageInfo); len(images) > 0 {
 			row["images"] = images

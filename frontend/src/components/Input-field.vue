@@ -1387,7 +1387,7 @@ const loadMentionItems = async (q: string, resetIndex = true, append = false) =>
         id: kb.id,
         name: kb.name,
         type: 'kb' as const,
-        kbType: kbType === 'faq' ? 'faq' as const : 'document' as const,
+        kbType: kbType === 'faq' ? 'faq' as const : kbType === 'question_bank' ? 'question_bank' as const : 'document' as const,
         count,
         orgName: kb.org_name || sharedAgentOrgName.value || undefined
       };

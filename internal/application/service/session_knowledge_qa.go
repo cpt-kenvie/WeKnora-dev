@@ -702,6 +702,10 @@ func (s *sessionService) KnowledgeQAByEvent(ctx context.Context,
 	}
 	logger.Infof(ctx, "Trigger event list: %v", methods)
 
+	chatManage.QuestionBankOnly = s.questionBankScope(ctx, chatManage.SearchTargets)
+	if chatManage.QuestionBankOnly {
+		chatManage.EnableRewrite, chatManage.EnableQueryExpansion, chatManage.WebSearchEnabled = false, false, false
+	}
 	pipelineStart := time.Now()
 	lastRetrievalStage := chatpipeline.LastConsolidatedRetrievalStage(eventList, chatManage)
 	var retrievalProgress *chatpipeline.StageProgress
@@ -1037,6 +1041,10 @@ func (s *sessionService) runKnowledgeSearchPipeline(
 
 // handleFallbackResponse handles fallback response based on strategy
 func (s *sessionService) handleFallbackResponse(ctx context.Context, chatManage *types.ChatManage) {
+	if chatManage.QuestionBankOnly {
+		s.emitFallbackAnswer(ctx, chatManage, types.QuestionAnswerMarkdown(chatManage.Query, nil))
+		return
+	}
 	if chatManage.FallbackStrategy == types.FallbackStrategyModel {
 		s.handleModelFallback(ctx, chatManage)
 	} else {

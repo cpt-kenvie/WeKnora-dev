@@ -72,7 +72,7 @@ import { getRootZoom, rectToCssPx, cssViewportSize } from '@/utils/zoom'
 interface KnowledgeBase {
   id: string
   name: string
-  type?: 'document' | 'faq'
+  type?: 'document' | 'faq' | 'question_bank'
   knowledge_count?: number
   chunk_count?: number
   embedding_model_id?: string

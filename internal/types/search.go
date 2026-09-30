@@ -149,6 +149,8 @@ func (st SearchTargets) ContainsKB(kbID string) bool {
 
 // SearchResult represents the search result
 type SearchResult struct {
+	// Question 是当前题目版本的完整快照，随引用一起持久化。
+	Question *QuestionSnapshot `json:"question,omitempty"`
 	// CitationSources retains independently citeable bodies after context expansion.
 	CitationSources []*SearchResult `json:"-" gorm:"-"`
 	// ID

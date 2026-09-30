@@ -55,6 +55,7 @@ import { useUploadConfirmStore, type UploadConfirmResult } from '@/stores/upload
 import { useUploadTasksStore } from '@/stores/uploadTasks';
 import WikiBrowser from './wiki/WikiBrowser.vue';
 import ImageGallery from './gallery/ImageGallery.vue';
+import QuestionBankManager from './components/QuestionBankManager.vue';
 import { getWikiStats } from '@/api/wiki';
 import {
   isKnowledgeParseInFlight,
@@ -91,8 +92,9 @@ const uploadSourceRef = ref<InstanceType<typeof KbUploadSourceDropdown> | null>(
 const kbLoading = ref(false);
 const docListLoading = ref(true);
 const isFAQ = computed(() => (kbInfo.value?.type || '') === 'faq');
+const isQuestionBank = computed(() => kbInfo.value?.type === 'question_bank');
 const isWiki = computed(() => !!kbInfo.value?.indexing_strategy?.wiki_enabled);
-const validTabs = ['documents', 'wiki', 'graph', 'gallery'] as const
+const validTabs = ['documents', 'wiki', 'graph', 'gallery', 'questions'] as const
 type KbTab = typeof validTabs[number]
 const initTab = validTabs.includes(route.query.tab as any) ? (route.query.tab as KbTab) : 'documents'
 const activeKbTab = ref<KbTab>(initTab);
@@ -117,6 +119,9 @@ const kbViewTabs = computed(() => {
   const tabs: Array<{ key: KbTab; icon: string; label: string; tip: string; indexing?: boolean }> = [
     { key: 'documents', icon: 'file', label: t(`${w}.tabDocuments`), tip: t(`${w}.tabDocumentsTip`) },
   ]
+  if (isQuestionBank.value) {
+    tabs.unshift({ key: 'questions', icon: 'help-circle', label: t('questionBank.title'), tip: t('questionBank.tabTip') })
+  }
   if (isWiki.value) {
     const indexing = wikiIsIndexing.value
     tabs.push(
@@ -130,6 +135,9 @@ const kbViewTabs = computed(() => {
 const shownKbTab = computed<KbTab>(() =>
   kbViewTabs.value.some((tab) => tab.key === activeKbTab.value) ? activeKbTab.value : 'documents',
 )
+watch([kbId, isQuestionBank], () => {
+  if (isQuestionBank.value && !route.query.tab) activeKbTab.value = 'questions'
+})
 const onWikiStatusChange = (payload: { pendingTasks: number; isActive: boolean; pendingIssues: number }) => {
   wikiStatus.value = payload
 }
@@ -2337,11 +2345,12 @@ const handleKBEditorSuccess = (kbIdValue: string) => {
       </div>
 
       <!-- Image Gallery (4th tab) -->
+      <QuestionBankManager v-if="isQuestionBank && activeKbTab === 'questions' && kbId" :kb-id="kbId" :can-edit="canEdit" :processing="!!kbInfo?.processing_count" @show-sources="activeKbTab = 'documents'" @uploaded="loadKnowledgeBaseInfo(kbId, true)" />
       <ImageGallery v-if="activeKbTab === 'gallery' && kbId" :knowledge-base-id="kbId" @open-source-doc="openSourceDoc" />
 
       <!-- wiki/graph tabs only exist on wiki KBs; a stale tab (?tab= or one
            carried over from a previous KB) falls back to documents. -->
-      <template v-if="activeKbTab === 'documents' || (!isWiki && activeKbTab !== 'gallery')">
+      <template v-if="shownKbTab === 'documents'">
         <div class="knowledge-main">
           <KbFolderTree v-if="showFolderTree && !folderTreeCollapsed" :tree="folderTree" :selected-path="selectedFolderPath"
             :loading="folderTreeLoading" :can-edit="canEdit" :root-label="kbInfo?.name"
@@ -2488,7 +2497,7 @@ const handleKBEditorSuccess = (kbIdValue: string) => {
                       </button>
                     </t-tooltip>
                   </div>
-                  <div v-if="canEdit" class="doc-filter-actions">
+                  <div v-if="canEdit && !isQuestionBank" class="doc-filter-actions">
                     <KbUploadSourceDropdown ref="uploadSourceRef" :accept-file-types="acceptFileTypes"
                       :supported-file-types="[...supportedFileTypes]" include-manual trigger-icon="add" :trigger-label="t('knowledgeBase.addDocument')"
                       trigger-class="content-bar-icon-btn" data-guide="kb-detail-add-doc"

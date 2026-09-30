@@ -62,6 +62,13 @@ func (p *PluginChatCompletionStream) OnEvent(ctx context.Context,
 		"chat_model":     chatManage.ChatModelID,
 	})
 
+	if answer, ok := questionBankAnswer(chatManage); ok {
+		if err := emitQuestionBankAnswer(ctx, chatManage, answer); err != nil {
+			return err
+		}
+		return next()
+	}
+
 	// Prepare chat model and options
 	chatModel, opt, err := prepareChatModel(ctx, p.modelService, chatManage)
 	if err != nil {

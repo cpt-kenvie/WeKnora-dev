@@ -164,7 +164,8 @@ func searchResultHasResourceHandle(ref *types.SearchResult, handle string) bool 
 	}
 	return textHasResourceHandle(ref.Content, handle) ||
 		textHasResourceHandle(ref.MatchedContent, handle) ||
-		textHasResourceHandle(ref.ImageInfo, handle)
+		textHasResourceHandle(ref.ImageInfo, handle) ||
+		(ref.Question != nil && textHasResourceHandle(ref.Question.ImageRef, handle))
 }
 
 func textHasResourceHandle(text, handle string) bool {

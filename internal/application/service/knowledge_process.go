@@ -3624,7 +3624,12 @@ func (s *knowledgeService) ProcessDocument(ctx context.Context, t *asynq.Task) e
 		return nil
 	}
 	markKnowledgeProcessing(knowledge, time.Now())
-	if err := s.updateKnowledgeUnlessSourceReplaced(ctx, knowledge); err != nil {
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		err = s.questionBank.repo.UpdateSourceState(ctx, knowledge, payload.Attempt)
+	} else {
+		err = s.updateKnowledgeUnlessSourceReplaced(ctx, knowledge)
+	}
+	if err != nil {
 		logger.Errorf(ctx, "failed to update knowledge status to processing: %v", err)
 		return fmt.Errorf("mark knowledge %s processing: %w", knowledge.ID, err)
 	}
@@ -3646,6 +3651,10 @@ func (s *knowledgeService) ProcessDocument(ctx context.Context, t *asynq.Task) e
 		}
 	}
 	ctx = withAttempt(ctx, attempt)
+
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		return s.processQuestionImage(ctx, kb, knowledge, isLastRetry)
+	}
 
 	// 检查多模态配置（仅对文件导入）
 	if payload.FilePath != "" && !payload.EnableMultimodel && IsImageType(payload.FileType) {

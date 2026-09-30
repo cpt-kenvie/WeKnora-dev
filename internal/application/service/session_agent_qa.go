@@ -74,6 +74,11 @@ func (s *sessionService) AgentQA(
 		return err
 	}
 
+	// 纯题库问答先检索权威原题，避免模型未调用工具便自行作答。
+	if s.questionBankScope(ctx, agentConfig.SearchTargets) {
+		return s.KnowledgeQA(ctx, req, eventBus)
+	}
+
 	// Set VLM model ID for tool result image analysis (runtime-only field)
 	if req.CustomAgent != nil && req.CustomAgent.Config.VLMModelID != "" {
 		agentConfig.VLMModelID = req.CustomAgent.Config.VLMModelID

@@ -314,6 +314,11 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 		kb.VLMConfig.ModelID = ""
 	}
 
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank && !kb.VLMConfig.IsEnabled() {
+		c.Error(errors.NewBadRequestError("题库必须配置可用的视觉识别模型"))
+		return
+	}
+
 	// 处理ASR语音识别配置
 	kb.ASRConfig = types.ASRConfig{}
 	if req.ASRConfig != nil && req.ASRConfig.Enabled && req.ASRConfig.ModelID != "" {

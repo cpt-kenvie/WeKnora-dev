@@ -7,7 +7,7 @@ export const useUIStore = defineStore('ui', {
     showKBEditorModal: false,
     kbEditorMode: 'create' as 'create' | 'edit',
     currentKBId: null as string | null,
-    kbEditorType: 'document' as 'document' | 'faq',
+    kbEditorType: 'document' as 'document' | 'faq' | 'question_bank',
     // 当前选中的标签 ID，用于文件上传时传递
     selectedTagIds: [] as string[],
     kbEditorInitialSection: null as string | null,
@@ -60,7 +60,7 @@ export const useUIStore = defineStore('ui', {
       this.openKBSettings(kbId, initialSection)
     },
 
-    openCreateKB(type: 'document' | 'faq' = 'document', initialSection?: string) {
+    openCreateKB(type: 'document' | 'faq' | 'question_bank' = 'document', initialSection?: string) {
       this.currentKBId = null
       this.kbEditorMode = 'create'
       this.kbEditorType = type

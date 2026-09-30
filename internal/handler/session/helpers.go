@@ -489,6 +489,14 @@ func searchResultFromMap(refMap map[string]interface{}) *types.SearchResult {
 		}
 		sr.Metadata = metadata
 	}
+	if raw, ok := refMap["question"]; ok && raw != nil {
+		if b, err := json.Marshal(raw); err == nil {
+			var question types.QuestionSnapshot
+			if json.Unmarshal(b, &question) == nil && question.ID != "" {
+				sr.Question = &question
+			}
+		}
+	}
 	if raw, ok := refMap["source_locators"]; ok && raw != nil {
 		if b, err := json.Marshal(raw); err == nil {
 			var locators types.SourceLocators

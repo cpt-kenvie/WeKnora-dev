@@ -172,6 +172,9 @@ func (s *knowledgeBaseService) rerankCandidates(
 		diag.Outcome = types.RerankOutcomeNoModel
 		return retrievalOrder
 	}
+	if len(candidates) > 0 && candidates[0].Question != nil && types.NormalizeQuestionStem(query) == types.NormalizeQuestionStem(candidates[0].Question.Stem) {
+		return retrievalOrder
+	}
 	model, err := s.modelService.GetRerankModel(ctx, modelID)
 	if err != nil {
 		logger.Warnf(ctx, "Rerank model %s unavailable, keeping retrieval order: %v", modelID, err)

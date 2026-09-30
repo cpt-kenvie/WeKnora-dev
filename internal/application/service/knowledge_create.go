@@ -63,6 +63,9 @@ func (s *knowledgeService) CreateKnowledgeFromFile(ctx context.Context,
 		return nil, werrors.NewBadRequestError("FAQ 知识库不支持文件上传，请使用 FAQ 导入功能")
 	}
 
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank && file.Size > 30<<20 {
+		return nil, werrors.NewBadRequestError("题目图片不能超过 30 MB")
+	}
 	if err := s.checkStorageEngineConfigured(ctx, kb); err != nil {
 		return nil, err
 	}
@@ -329,6 +332,9 @@ func (s *knowledgeService) CreateKnowledgeFromURL(ctx context.Context,
 		logger.Errorf(ctx, "Failed to get knowledge base: %v", err)
 		return nil, err
 	}
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		return nil, werrors.NewBadRequestError("题库请上传包含题目和答案的图片")
+	}
 
 	if err := s.checkStorageEngineConfigured(ctx, kb); err != nil {
 		return nil, err
@@ -531,6 +537,9 @@ func (s *knowledgeService) createKnowledgeFromFileURL(
 	if err != nil {
 		logger.Errorf(ctx, "Failed to get knowledge base: %v", err)
 		return nil, err
+	}
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		return nil, werrors.NewBadRequestError("题库请上传包含题目和答案的图片")
 	}
 
 	if kb.Type == types.KnowledgeBaseTypeFAQ {
@@ -772,6 +781,9 @@ func (s *knowledgeService) CreateKnowledgeFromManual(ctx context.Context,
 		logger.Errorf(ctx, "Failed to get knowledge base: %v", err)
 		return nil, err
 	}
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		return nil, werrors.NewBadRequestError("题库请上传包含题目和答案的图片")
+	}
 
 	if err := s.checkStorageEngineConfigured(ctx, kb); err != nil {
 		return nil, err
@@ -894,6 +906,9 @@ func (s *knowledgeService) createKnowledgeFromPassageInternal(ctx context.Contex
 	if err != nil {
 		logger.Errorf(ctx, "Failed to get knowledge base: %v", err)
 		return nil, err
+	}
+	if kb.Type == types.KnowledgeBaseTypeQuestionBank {
+		return nil, werrors.NewBadRequestError("题库请上传包含题目和答案的图片")
 	}
 
 	// Create knowledge record

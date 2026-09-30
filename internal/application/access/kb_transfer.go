@@ -153,6 +153,10 @@ func validateTransferPair(
 	if source.ID == target.ID {
 		return fmt.Errorf("source and target knowledge bases must differ")
 	}
+	// 新建克隆目标也经过此处，避免仅复制分块而遗漏权威题目。
+	if source.Type == types.KnowledgeBaseTypeQuestionBank || target.Type == types.KnowledgeBaseTypeQuestionBank {
+		return fmt.Errorf("题库请通过上传原图导入，不支持跨库复制或移动")
+	}
 	if operation != KBTransferClone && operation != KBTransferMove || create && operation != KBTransferClone {
 		return ErrForbidden
 	}
@@ -196,6 +200,9 @@ func ValidateKBTransferCompatibility(
 	}
 	if source.ID == target.ID {
 		return fmt.Errorf("source and target knowledge bases must differ")
+	}
+	if source.Type == types.KnowledgeBaseTypeQuestionBank || target.Type == types.KnowledgeBaseTypeQuestionBank {
+		return fmt.Errorf("题库请通过上传原图导入，不支持跨库复制或移动")
 	}
 	if source.Type != target.Type {
 		return fmt.Errorf("source and target knowledge bases must have the same type")
