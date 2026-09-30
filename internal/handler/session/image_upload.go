@@ -43,6 +43,9 @@ func (h *Handler) saveImageAttachments(ctx context.Context, images []ImageAttach
 		if err != nil {
 			return fmt.Errorf("decode image %d: %w", i, err)
 		}
+		if len(imgBytes) == 0 {
+			return fmt.Errorf("image %d is empty", i)
+		}
 		if len(imgBytes) > maxImageSize {
 			return fmt.Errorf("image %d too large (%d bytes, max %d)", i, len(imgBytes), maxImageSize)
 		}

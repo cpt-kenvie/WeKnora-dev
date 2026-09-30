@@ -26,8 +26,6 @@
             </div>
             <p class="product-desc">
               {{ t('localBrowser.productDescription') }}
-              <a class="product-link" href="https://github.com/Tencent/BrowserSkill" target="_blank"
-                rel="noopener noreferrer">GitHub<t-icon name="jump" size="12px" /></a>
             </p>
           </div>
         </div>
@@ -92,12 +90,6 @@
                   <p v-if="!status.extension_available" class="package-hint">{{ t('localBrowser.packageUnavailable') }}</p>
                 </div>
               </details>
-            </div>
-            <div class="store-actions">
-              <a v-for="store in EXTENSION_STORES" :key="store.label" class="setup-action setup-main-action store-action"
-                :href="store.url" target="_blank" rel="noopener noreferrer">
-                {{ t(store.label) }}<t-icon name="jump" size="13px" />
-              </a>
             </div>
           </li>
           <li>
@@ -185,10 +177,6 @@ const controller = new AbortController()
 let revision = 0
 let alive = true, timer: ReturnType<typeof setTimeout> | undefined, expiry: ReturnType<typeof setTimeout> | undefined, pairExpires = 0
 const MIN_EXTENSION_VERSION = '0.3.1'
-const EXTENSION_STORES = [
-  { label: 'localBrowser.storeInstall', url: 'https://chromewebstore.google.com/detail/hhcmgoofomhgciiibhipgmgkgnoenaoi' },
-  { label: 'localBrowser.edgeStoreInstall', url: 'https://microsoftedge.microsoft.com/addons/detail/browserskill/emacgiaaaiojkkpkddmmdfhmokgmnikg' },
-]
 const versionParts = (value: string) => value.replace(/^v/, '').split(/[.-]/).slice(0, 3).map((part) => Number.parseInt(part, 10) || 0)
 const extensionOutdated = computed(() => {
   const current = status.value.connected ? status.value.extension_version : ''
@@ -365,21 +353,6 @@ onBeforeUnmount(() => { alive = false; controller.abort(); clearTimeout(timer); 
     font-weight: 600;
     line-height: 24px;
     color: var(--td-text-color-primary);
-  }
-}
-
-.product-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-left: 6px;
-  color: var(--td-brand-color);
-  text-decoration: none;
-  white-space: nowrap;
-
-  &:hover,
-  &:focus-visible {
-    text-decoration: underline;
   }
 }
 
@@ -574,13 +547,6 @@ onBeforeUnmount(() => { alive = false; controller.abort(); clearTimeout(timer); 
   gap: 12px;
 }
 
-.store-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-}
-
 .connection-card .setup-action {
   display: inline-flex;
   align-items: center;
@@ -609,11 +575,6 @@ onBeforeUnmount(() => { alive = false; controller.abort(); clearTimeout(timer); 
 
 .connection-card .setup-main-action {
   min-width: 144px;
-}
-
-.connection-card .store-action {
-  --setup-action-color: color-mix(in srgb, var(--td-brand-color) 75%, var(--td-text-color-primary));
-  color: var(--setup-action-color);
 }
 
 .connection-card .setup-action:not(:disabled) {
@@ -811,14 +772,9 @@ onBeforeUnmount(() => { alive = false; controller.abort(); clearTimeout(timer); 
     grid-template-columns: 22px minmax(0, 1fr);
   }
 
-  .setup-steps li > .setup-action,
-  .setup-steps li > .store-actions {
+  .setup-steps li > .setup-action {
     grid-column: 2;
     justify-self: start;
-  }
-
-  .store-actions {
-    flex-direction: row;
   }
 
   .status-pill {

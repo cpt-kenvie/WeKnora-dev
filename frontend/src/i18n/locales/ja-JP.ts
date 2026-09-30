@@ -469,7 +469,7 @@ export default {
       },
       settings: {
         title: 'アカウントと設定',
-        desc: 'ここからアカウント、メンバー、システム設定を管理できます。このツアーは、メニュー上部のユーザ名の横にあるヘルプボタンからいつでも再開できます。'
+        desc: 'ここからアカウント、メンバー、システム設定を管理できます。'
       },
       models: {
         title: 'モデルを設定',
@@ -477,7 +477,7 @@ export default {
       },
       done: {
         title: '準備完了',
-        desc: '基本は以上です。あなただけのナレッジアシスタントを作り始めましょう。このツアーは、メニュー上部のユーザ名の横にあるヘルプボタンからいつでも見直せます。'
+        desc: '基本は以上です。あなただけのナレッジアシスタントを作り始めましょう。'
       }
     }
   },
@@ -2080,7 +2080,7 @@ export default {
       credentialUnconfigured: 'WeKnoraCloudの認証情報が未設定です。先にAPPIDとAPPSECRETを設定してください。',
       checkingStatus: '認証情報のステータスを確認中...',
       goToSettings: '設定へ移動',
-      modelHintConfigured: 'WeKnoraCloudの認証情報は設定済みです。対応モデルは以下を参照してください:',
+      modelHintConfigured: 'WeKnoraCloudの認証情報は設定済みです。',
       modelHintDocsLink: 'APIドキュメント',
       modelsSection: {
         title: 'クラウドモデル',
@@ -4406,7 +4406,7 @@ export default {
     dbVersionDescription: '現在のデータベースマイグレーションのバージョン',
     dbMigrationFailedTag: 'マイグレーション失敗',
     dbMigrationFailedTitle: 'データベースのマイグレーションに失敗しました',
-    dbMigrationFailedDesc: '起動時のデータベースマイグレーションが正常に完了しませんでした。一部のテーブルやインデックスが欠落し、Wikiの取り込みやナレッジグラフなどの機能が動作しない可能性があります。まず下記のトラブルシューティングガイドを確認し、解決しない場合はリンクから問題を報告してください。',
+    dbMigrationFailedDesc: '起動時のデータベースマイグレーションが正常に完了しませんでした。一部のテーブルやインデックスが欠落し、Wikiの取り込みやナレッジグラフなどの機能が動作しない可能性があります。下記のエラー情報をもとに、データベースの設定とサービスログを確認してください。',
     dbMigrationViewDocs: 'トラブルシューティングガイドを表示',
     dbMigrationReportIssue: '解決しない場合は問題を報告',
     keywordIndexEngineLabel: 'キーワードインデックスエンジン',
@@ -5610,7 +5610,7 @@ export default {
     },
     download: {
       title: 'モデルをダウンロード',
-      descPrefix: 'ダウンロードするモデル名を入力するか、',
+      descPrefix: 'ダウンロードするモデル名を入力してください。',
       browse: 'Ollamaモデルライブラリを見る',
       placeholder: '例: qwen2.5:0.5b',
       download: 'ダウンロード',

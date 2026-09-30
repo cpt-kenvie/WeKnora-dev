@@ -469,7 +469,7 @@ export default {
       },
       settings: {
         title: 'Account & settings',
-        desc: 'Open this to manage your account, members and system settings. You can reopen this tour from the help button next to your name at the top of this menu.'
+        desc: 'Open this to manage your account, members and system settings.'
       },
       models: {
         title: 'Configure your models',
@@ -477,7 +477,7 @@ export default {
       },
       done: {
         title: 'You are all set',
-        desc: 'You now know the essentials — start building your knowledge assistant! Revisit this tour anytime from the help button next to your name in this menu.'
+        desc: 'You now know the essentials — start building your knowledge assistant!'
       }
     }
   },
@@ -2080,7 +2080,7 @@ export default {
       credentialUnconfigured: 'WeKnoraCloud credentials not configured. Please set up APPID and APPSECRET first.',
       checkingStatus: 'Checking credential status...',
       goToSettings: 'Go to Settings',
-      modelHintConfigured: 'WeKnoraCloud credentials configured. See supported models in',
+      modelHintConfigured: 'WeKnoraCloud credentials configured.',
       modelHintDocsLink: 'API docs',
       modelsSection: {
         title: 'Cloud Models',
@@ -4406,7 +4406,7 @@ export default {
     dbVersionDescription: 'Current database migration version',
     dbMigrationFailedTag: 'Migration failed',
     dbMigrationFailedTitle: 'Database migration failed',
-    dbMigrationFailedDesc: 'The startup database migration did not complete successfully. Some tables or indexes may be missing, which can break Wiki ingest, the knowledge graph, and other features. Check the troubleshooting guide below first; if the issue persists, report it via the link.',
+    dbMigrationFailedDesc: 'The startup database migration did not complete successfully. Some tables or indexes may be missing, which can break Wiki ingest, the knowledge graph, and other features. Use the error details below to check the database configuration and service logs.',
     dbMigrationViewDocs: 'View troubleshooting guide',
     dbMigrationReportIssue: 'Can\'t fix it? Report an issue',
     keywordIndexEngineLabel: 'Keyword Index Engine',
@@ -5610,7 +5610,7 @@ export default {
     },
     download: {
       title: 'Download Models',
-      descPrefix: 'Enter a model name to download,',
+      descPrefix: 'Enter a model name to download.',
       browse: 'Browse Ollama model library',
       placeholder: 'e.g. qwen2.5:0.5b',
       download: 'Download',

@@ -29,12 +29,13 @@ func (s *questionImageDocuments) ResolveForPrompt(context.Context, uint64, strin
 func TestQuestionImageAttachmentReachesNormalKnowledgeQA(t *testing.T) {
 	h := &Handler{temporaryDocuments: &questionImageDocuments{status: types.TemporaryDocumentStatusReady}}
 	req := &qaRequestContext{
-		session: &types.Session{TenantID: 42}, assistantMessage: &types.Message{ID: "answer"}, query: "回答", attachmentIDs: []string{"image"},
+		session: &types.Session{TenantID: 42}, assistantMessage: &types.Message{ID: "answer"}, attachmentIDs: []string{"image"},
 		attachmentMetas: types.MessageAttachments{{ID: "image", FileType: ".png", FileName: "question.png"}},
 	}
 	stream := &sseStreamContext{asyncCtx: context.Background(), eventBus: event.NewEventBus()}
 	require.NoError(t, h.resolveTemporaryAttachments(stream, req))
 	qa := req.buildQARequest()
+	require.Empty(t, qa.Query)
 	require.Equal(t, []string{"resource://original"}, qa.ImageURLs)
 	require.Len(t, qa.Attachments, 1)
 }

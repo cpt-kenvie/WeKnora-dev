@@ -2558,7 +2558,7 @@ export default {
     },
     download: {
       title: '下载新模型',
-      descPrefix: '输入模型名称下载，',
+      descPrefix: '输入模型名称下载。',
       browse: '浏览 Ollama 模型库',
       placeholder: '如：qwen2.5:0.5b',
       download: '下载',
@@ -3252,7 +3252,7 @@ export default {
     dbVersionDescription: '当前数据库迁移版本号',
     dbMigrationFailedTag: '迁移失败',
     dbMigrationFailedTitle: '数据库迁移失败',
-    dbMigrationFailedDesc: '启动时数据库迁移未成功完成，部分表或索引可能未创建，会导致 Wiki、知识图谱等功能异常。建议先查看排查文档自助修复；如仍无法解决，请通过下方链接反馈。',
+    dbMigrationFailedDesc: '启动时数据库迁移未成功完成，部分表或索引可能未创建，会导致 Wiki、知识图谱等功能异常。请根据下方错误信息检查数据库配置和服务日志。',
     dbMigrationViewDocs: '查看排查文档',
     dbMigrationReportIssue: '无法修复？提交 Issue',
     keywordIndexEngineLabel: '关键词索引引擎',
@@ -6601,7 +6601,7 @@ export default {
       credentialUnconfigured: '尚未配置 WeKnoraCloud 凭证，请先填写 APPID 和 APPSECRET。',
       checkingStatus: '正在检查凭证状态...',
       goToSettings: '前往设置中配置',
-      modelHintConfigured: 'WeKnoraCloud 凭证已配置。支持的模型可参考',
+      modelHintConfigured: 'WeKnoraCloud 凭证已配置。',
       modelHintDocsLink: '接口文档',
       addModelsSuccess: '已成功添加 {count} 个模型',
       addModelsPartial: '已添加 {success} 个，{failed} 个失败',
@@ -7699,7 +7699,7 @@ export default {
     steps: {
       done: {
         title: '一切就绪',
-        desc: '你已经了解了核心功能，现在就开始构建你的知识助手吧！随时可点击菜单顶部昵称旁的帮助按钮重新查看引导。'
+        desc: '你已经了解了核心功能，现在就开始构建你的知识助手吧！'
       },
       models: {
         title: '配置你的模型',
@@ -7707,7 +7707,7 @@ export default {
       },
       settings: {
         title: '账户与设置入口',
-        desc: '点开这里可以管理账户、成员与系统设置。需要再次查看本引导时，可点击菜单顶部昵称旁的帮助按钮重新打开。'
+        desc: '点开这里可以管理账户、成员与系统设置。'
       },
       agents: {
         title: '打造专属智能体',

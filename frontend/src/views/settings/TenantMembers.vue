@@ -52,15 +52,6 @@
       </div>
       <p class="section-description">
         {{ $t('tenantMember.sectionDescription') }}
-        <a
-          class="doc-link"
-          :href="docsUrl('tenantAuth')"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {{ $t('tenantMember.learnRbacGuide') }}
-          <t-icon name="link" class="link-icon" />
-        </a>
       </p>
     </div>
 
@@ -535,7 +526,6 @@ import {
   revokeInvitation,
   type TenantInvitation,
 } from '@/api/tenant/invitations'
-import { docsUrl } from '@/utils/docsUrl'
 import {
   listAuditLog,
   type AuditLog,

@@ -544,9 +544,6 @@ const schedulePresets = computed(() => [
 interface ConnectorDef {
   type: string
   available: boolean
-  docUrl: string
-  permissionDocUrl: string
-  permissionPageUrl: string
   requiredPermissions: string[]
   fields: {
     key: string
@@ -564,9 +561,6 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
   {
     type: 'feishu',
     available: true,
-    docUrl: 'https://open.feishu.cn/app',
-    permissionDocUrl: 'https://open.feishu.cn/document/server-docs/docs/wiki-v2/wiki-overview',
-    permissionPageUrl: 'https://open.feishu.cn/app',
     requiredPermissions: [
       'wiki:wiki:readonly',
       'drive:drive:readonly',
@@ -585,9 +579,6 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
     // created on open.feishu.cn cannot read a Lark wiki.
     type: 'lark',
     available: true,
-    docUrl: 'https://open.larksuite.com/app',
-    permissionDocUrl: 'https://open.larksuite.com/document/server-docs/docs/wiki-v2/wiki-overview',
-    permissionPageUrl: 'https://open.larksuite.com/app',
     requiredPermissions: [
       'wiki:wiki:readonly',
       'drive:drive:readonly',
@@ -606,9 +597,6 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
     // scope - Drive only needs drive + export + docx.
     type: 'feishu_drive',
     available: true,
-    docUrl: 'https://open.feishu.cn/app',
-    permissionDocUrl: 'https://open.feishu.cn/document/server-docs/docs/drive-v1/file/list',
-    permissionPageUrl: 'https://open.feishu.cn/app',
     requiredPermissions: [
       'drive:drive:readonly',
       'drive:export:readonly',
@@ -624,9 +612,6 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
     // Lark Drive: international counterpart of feishu_drive.
     type: 'lark_drive',
     available: true,
-    docUrl: 'https://open.larksuite.com/app',
-    permissionDocUrl: 'https://open.larksuite.com/document/server-docs/docs/drive-v1/file/list',
-    permissionPageUrl: 'https://open.larksuite.com/app',
     requiredPermissions: [
       'drive:drive:readonly',
       'drive:export:readonly',
@@ -641,9 +626,6 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
   {
     type: 'notion',
     available: true,
-    docUrl: 'https://www.notion.so/my-integrations',
-    permissionDocUrl: '',
-    permissionPageUrl: '',
     requiredPermissions: [],
     fields: [
       { key: 'api_key', labelKey: 'datasource.field.integrationToken', placeholder: 'ntn_xxxx', secret: true },
@@ -652,9 +634,6 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
   {
     type: 'confluence',
     available: true,
-    docUrl: 'https://developer.atlassian.com/cloud/confluence/rest/',
-    permissionDocUrl: 'https://developer.atlassian.com/cloud/confluence/rest/',
-    permissionPageUrl: 'https://id.atlassian.com/manage-profile/security/api-tokens',
     requiredPermissions: [],
     fields: [
       { key: 'base_url', labelKey: 'datasource.field.confluenceBaseUrl', placeholder: 'https://confluence.example.com or https://team.atlassian.net/wiki' },
@@ -666,9 +645,6 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
   {
     type: 'yuque',
     available: true,
-    docUrl: 'https://www.yuque.com/yuque/developer/api',
-    permissionDocUrl: 'https://www.yuque.com/yuque/developer/api',
-    permissionPageUrl: 'https://www.yuque.com/settings/tokens',
     requiredPermissions: [
       'repo:read',
       'doc:read',
@@ -681,9 +657,6 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
   {
     type: 'dingtalk',
     available: true,
-    docUrl: 'https://open.dingtalk.com/document/development/knowledge-base-overview',
-    permissionDocUrl: 'https://open.dingtalk.com/document/development/get-knowledge-base-list',
-    permissionPageUrl: 'https://open-dev.dingtalk.com/',
     requiredPermissions: [
       'Wiki.Workspace.Read',
       'Wiki.Node.Read',
@@ -700,9 +673,6 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
     // static headers (ima-openapi-clientid + ima-openapi-apikey); no OAuth.
     type: 'ima',
     available: true,
-    docUrl: 'https://ima.qq.com/agent-interface',
-    permissionDocUrl: 'https://ima.qq.com/agent-interface',
-    permissionPageUrl: 'https://ima.qq.com/agent-interface',
     requiredPermissions: [],
     fields: [
       { key: 'client_id', labelKey: 'datasource.field.imaClientId', placeholder: '', secret: true },
@@ -713,16 +683,13 @@ const connectorDefs = computed<ConnectorDef[]>(() => [
   {
     type: 'rss',
     available: true,
-    docUrl: '',
-    permissionDocUrl: '',
-    permissionPageUrl: '',
     requiredPermissions: [],
     fields: [
       { key: 'auth_headers', labelKey: 'datasource.field.authHeaders', placeholder: '', optional: true, hintKey: 'datasource.field.authHeadersHint', fieldType: 'custom_headers' },
     ],
   },
   {
-    type: 'gitlab', available: true, docUrl: '', permissionDocUrl: '', permissionPageUrl: '', requiredPermissions: [],
+    type: 'gitlab', available: true, requiredPermissions: [],
     fields: [
       { key: 'base_url', labelKey: 'datasource.gitlab.baseUrl', placeholder: 'https://gitlab.example.com' },
       { key: 'access_token', labelKey: 'datasource.gitlab.accessToken', placeholder: '', secret: true },
@@ -1488,35 +1455,11 @@ const drawerConfirmText = computed(() => {
                 t('datasource.prereqMemberDesc')) }}</span>
             </li>
           </ol>
-          <a
-            v-if="currentDef.permissionPageUrl"
-            :href="currentDef.permissionPageUrl"
-            target="_blank"
-            rel="noopener"
-            class="doc-link ds-setup-guide__link"
-          >
-            {{ t(`datasource.prereqOpenConsole_${form.type}`, t('datasource.prereqOpenConsole')) }}
-            <t-icon name="link" class="link-icon" />
-          </a>
         </div>
       </div>
 
       <section class="setting-drawer__section">
         <h4 class="setting-drawer__section-title">{{ t('datasource.sectionBasic') }}</h4>
-
-        <div v-if="currentDef?.docUrl" class="inline-alert">
-          <t-icon name="info-circle-filled" class="inline-alert__icon" />
-          <span class="inline-alert__text">{{ t('datasource.docHint') }}</span>
-          <a
-            :href="currentDef.docUrl"
-            target="_blank"
-            rel="noopener"
-            class="inline-alert__action doc-link"
-          >
-            {{ t('datasource.openDoc') }}
-            <t-icon name="link" class="link-icon" />
-          </a>
-        </div>
 
         <div class="form-item">
           <label class="form-label required">{{ t('datasource.nameLabel') }}</label>
@@ -1868,16 +1811,6 @@ const drawerConfirmText = computed(() => {
           <button type="button" class="ds-empty-retry" @click="loadResources">
             {{ t('datasource.retryLoadResources') }}
           </button>
-          <a
-            v-if="currentDef?.permissionDocUrl"
-            :href="currentDef.permissionDocUrl"
-            target="_blank"
-            rel="noopener"
-            class="doc-link"
-          >
-            {{ t('datasource.permissionDocLink') }}
-            <t-icon name="link" class="link-icon" />
-          </a>
         </div>
       </div>
       </template>

@@ -11,9 +11,6 @@
       >
         <template #message>
           <div>{{ t('graphSettings.disabledWarning') }}</div>
-          <t-link class="graph-guide-link" theme="primary" @click="handleOpenGraphGuide">
-            {{ t('graphSettings.howToEnable') }}
-          </t-link>
         </template>
       </t-alert>
     </div>
@@ -326,7 +323,6 @@ import { useI18n } from 'vue-i18n'
 import { extractTextRelations, fabriText, fabriTag, type Node, type Relation } from '@/api/initialization'
 import { useEditorResourcesStore } from '@/stores/editorResources'
 import { useAuthStore } from '@/stores/auth'
-import { docsUrl } from '@/utils/docsUrl'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -585,14 +581,6 @@ const loadSystemInfo = async (force = false) => {
   } catch (error: any) {
     console.error('Failed to load system info:', error)
   }
-}
-
-const graphGuideUrl =
-  import.meta.env.VITE_KG_GUIDE_URL || docsUrl('knowledgeGraph')
-
-// Open guide documentation to show how to enable graph database
-const handleOpenGraphGuide = () => {
-  window.open(graphGuideUrl, '_blank', 'noopener')
 }
 
 // 初始化

@@ -273,8 +273,12 @@ const uiStore = useUIStore();
 const { navigateToKnowledgeBaseList } = useKnowledgeBaseCreationNavigation();
 const { t } = useI18n();
 const { firstQuery, firstMentionedItems, firstModelId, firstImageFiles, firstAttachmentFiles, firstQuestionOrigin } = storeToRefs(usemenuStore);
-// Capture before the initial send consumes firstQuery; the child focuses after mounting.
-const focusComposerOnMount = Boolean(firstQuery.value);
+// 新会话草稿包含图片或附件时，也要保留所选智能体、知识库和模型。
+const hasFirstMessage = computed(() => Boolean(
+    firstQuery.value || firstImageFiles.value.length || firstAttachmentFiles.value.length
+));
+// 首条消息发送后草稿会被清空，挂载聚焦需提前保存本次状态。
+const focusComposerOnMount = hasFirstMessage.value;
 const { onChunk, error, isStreaming, startStream, stopStream, lastStreamRequest } = useStream();
 /** Snapshot of the in-flight HTTP request for attaching to the next assistant message. */
 const pendingStreamDebug = ref(null);
@@ -313,7 +317,7 @@ const loadSessionAndHydrate = async (sid) => {
     if (!sid || props.embeddedMode) return;
     // Capture before awaiting: onMounted sends and clears firstQuery while this
     // request is in flight. A new session must retain the createChat draft.
-    const preserveDraft = Boolean(firstQuery.value);
+    const preserveDraft = hasFirstMessage.value;
     try {
         const sessionRes = await getSession(sid);
         if (sessionRes?.data && sid === session_id.value) {
@@ -797,7 +801,7 @@ const getUserQuery = (index) => {
 watch([() => route.params], async (newvalue) => {
     isFirstEnter.value = true;
     if (newvalue[0].chatid) {
-        if (!firstQuery.value) {
+        if (!hasFirstMessage.value) {
             scrollLock.value = false;
         }
         messagesList.splice(0);
@@ -1691,7 +1695,8 @@ onMounted(async () => {
     loading.value = false;
     isReplying.value = false;
 
-    if (firstQuery.value) {
+    // 纯图片首条消息也必须在新会话创建后继续上传并发送。
+    if (hasFirstMessage.value) {
         scrollLock.value = true;
         historyLoading.value = false;
         if (firstModelId.value) {

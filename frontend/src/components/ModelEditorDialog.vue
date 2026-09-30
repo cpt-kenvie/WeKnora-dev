@@ -205,12 +205,6 @@
                 </div>
               </t-option>
             </t-select>
-            <p v-if="vendorDocLink" class="form-desc provider-doc-link">
-              <a :href="vendorDocLink" target="_blank" rel="noopener noreferrer">
-                {{ $t('model.editor.providerDocs', { provider: selectedProviderDisplayLabel }) }}
-                <t-icon name="jump" size="12px" />
-              </a>
-            </p>
           </div>
 
           <!-- WeKnoraCloud 提示信息 -->
@@ -220,11 +214,6 @@
               <t-icon name="check-circle-filled" class="hint-icon hint-icon--ok" />
               <div>
                 {{ $t('settings.weknoraCloud.modelHintConfigured') }}
-                <a href="https://developers.weixin.qq.com/doc/aispeech/knowledge/atomic_capability/atomic_interface.html"
-                  target="_blank" rel="noopener noreferrer" class="doc-link">
-                  {{ $t('settings.weknoraCloud.modelHintDocsLink') }}
-                  <t-icon name="link" class="link-icon" />
-                </a>
               </div>
             </div>
 
@@ -591,10 +580,6 @@
               <p v-if="specCompatError" class="form-desc form-desc--error">{{ $t('model.editor.advanced.compat.invalid') }}: {{ specCompatError }}</p>
               <p v-else class="form-desc">
                 {{ $t('model.editor.advanced.compat.desc') }}
-                <a :href="COMPAT_DOC_URL" target="_blank" rel="noopener noreferrer" class="compat-doc-link">
-                  {{ $t('model.editor.advanced.compat.docLink') }}
-                  <t-icon name="jump" size="12px" />
-                </a>
               </p>
             </div>
           </template>
@@ -646,7 +631,6 @@ import CredentialResource, {
 } from '@/components/credentials/CredentialResource.vue'
 import { shouldShowOllamaUnavailableTip } from '@/components/modelEditorSourceState'
 import { WEKNORA_CLOUD_PROVIDER, WKC_MODEL_KINDS, WKC_MODEL_NAME_BY_KIND } from '@/utils/weknoraCloudModels'
-import { docsUrl } from '@/utils/docsUrl'
 
 interface CustomHeaderItem {
   key: string
@@ -702,9 +686,6 @@ const PROTOCOL_OPTIONS = [
   'anthropic-messages',
   'google-generative-ai',
 ] as const
-
-/** Field reference for parameters.spec.compat, per protocol and model type. */
-const COMPAT_DOC_URL = docsUrl('modelsCompat')
 
 /** Legacy thinking_control values still honoured by catalog.Resolve. */
 const LEGACY_THINKING_CONTROL_VALUES = ['none', 'enable_thinking', 'thinking_type', 'chat_template_kwargs'] as const
@@ -927,22 +908,6 @@ const catalogModelOptions = computed<CatalogModelOption[]>(() => {
 })
 
 const findCatalogEntry = (name: string) => catalogEntries.value.find(m => m.id === name)
-
-/**
- * Where to read about what is configured right now.
- *
- * Prefer the page the selected model's facts were taken from — that is the
- * page listing its context window, thinking levels and price — and fall back
- * to the vendor's own site when the model is not in the catalog. Both come
- * from the catalog, so a new vendor gets the link without a UI change.
- */
-const vendorDocLink = computed(() => {
-  const provider = selectedProvider.value
-  if (!provider) return ''
-  const entry = findCatalogEntry((formData.value.modelName || '').trim())
-  const url = entry?.source || provider.website || ''
-  return /^https?:\/\//i.test(url) ? url : ''
-})
 
 /**
  * What applyCatalogEntry filled in for the model currently selected.
@@ -2186,23 +2151,6 @@ const handleCancel = () => {
 </script>
 
 <style lang="less" scoped>
-.provider-doc-link {
-  margin-top: 6px;
-}
-
-.provider-doc-link a,
-.compat-doc-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  color: var(--td-text-color-link);
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
 // 原生 t-form-item 容器置空（本组件使用自定义 .form-item + 手写 label）
 :deep(.t-form) {
   .t-form-item {

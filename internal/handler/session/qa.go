@@ -163,6 +163,13 @@ func (h *Handler) parseQARequest(c *gin.Context, logPrefix string) (*qaRequestCo
 	}
 	request.ReasoningEffort = string(level)
 
+	// 图片可以通过会话附件发送；先规范化 ID，空 ID 不能绕过空消息校验。
+	normalizedIDs, err := normalizeTemporaryAttachmentIDs(request.AttachmentIDs)
+	if err != nil {
+		return nil, nil, errors.NewBadRequestError(err.Error())
+	}
+	request.AttachmentIDs = normalizedIDs
+
 	// Validate syntax before session lookup or QA work, preserving the original
 	// query text. KnowledgeQA applies its XSS-pattern check later in the chat
 	// pipeline; AgentQA must allow frontend code in conversation text.
@@ -171,7 +178,7 @@ func (h *Handler) parseQARequest(c *gin.Context, logPrefix string) (*qaRequestCo
 		logger.Error(ctx, "Query content is invalid")
 		return nil, nil, errors.NewBadRequestError("Query content contains invalid content")
 	}
-	if validatedQuery == "" {
+	if validatedQuery == "" && !hasQAImageInput(&request, nil) && len(request.AttachmentIDs) == 0 {
 		logger.Error(ctx, "Query content is empty")
 		return nil, nil, errors.NewBadRequestError("Query content cannot be empty")
 	}
@@ -363,10 +370,6 @@ func (h *Handler) parseQARequest(c *gin.Context, logPrefix string) (*qaRequestCo
 	var attachmentIDs []string
 	var attachmentMetas types.MessageAttachments
 	if len(request.AttachmentIDs) > 0 {
-		normalizedIDs, normErr := normalizeTemporaryAttachmentIDs(request.AttachmentIDs)
-		if normErr != nil {
-			return nil, nil, errors.NewBadRequestError(normErr.Error())
-		}
 		tenantID := session.TenantID
 		attachmentMetas = make(types.MessageAttachments, 0, len(normalizedIDs))
 		for _, id := range normalizedIDs {
@@ -388,6 +391,11 @@ func (h *Handler) parseQARequest(c *gin.Context, logPrefix string) (*qaRequestCo
 			})
 		}
 		attachmentIDs = normalizedIDs
+	}
+
+	// ID 本身不能证明有图片，必须以当前会话实际拥有的附件类型为准。
+	if validatedQuery == "" && !hasQAImageInput(&request, attachmentMetas) {
+		return nil, nil, errors.NewBadRequestError("Query content cannot be empty without an image")
 	}
 
 	mentionScopes := tagScopesFromMentionedItems(request.MentionedItems)
@@ -462,6 +470,26 @@ func (h *Handler) parseQARequest(c *gin.Context, logPrefix string) (*qaRequestCo
 	}
 
 	return reqCtx, &request, nil
+}
+
+// hasQAImageInput 只接受上传数据或已校验归属的图片附件，不信任客户端的 URL 和描述。
+func hasQAImageInput(request *CreateKnowledgeQARequest, attachments types.MessageAttachments) bool {
+	for _, image := range request.Images {
+		if strings.TrimSpace(image.Data) != "" {
+			return true
+		}
+	}
+	for _, upload := range request.AttachmentUploads {
+		if strings.TrimSpace(upload.Data) != "" && docparser.IsImageFormat(filepath.Ext(upload.FileName)) {
+			return true
+		}
+	}
+	for _, attachment := range attachments {
+		if docparser.IsImageFormat(attachment.FileType) {
+			return true
+		}
+	}
+	return false
 }
 
 func decodeAndValidateAttachmentUploads(

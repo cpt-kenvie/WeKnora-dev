@@ -65,9 +65,12 @@ test('teardown blurs the active textarea before it is detached', () => {
 
 test('new-session focus survives consumption of the first query and runs on child mount', () => {
   const page = readFileSync(new URL('../views/chat/index.vue', import.meta.url), 'utf8')
-  const snapshot = page.match(/const focusComposerOnMount = [^;]+;/)[0]
+  const snapshot = page.slice(page.indexOf('const hasFirstMessage ='), page.indexOf('const { onChunk,'))
   const firstQuery = { value: 'initial question' }
-  const autoFocus = vm.runInNewContext(`${snapshot}\nfirstQuery.value = ''; focusComposerOnMount`, { firstQuery })
+  const autoFocus = vm.runInNewContext(`${snapshot}\nfirstQuery.value = ''; focusComposerOnMount`, {
+    firstQuery, firstImageFiles: { value: [] }, firstAttachmentFiles: { value: [] },
+    computed: getter => ({ get value() { return getter() } }),
+  })
   assert.equal(autoFocus, true)
   assert.match(page, /:auto-focus="focusComposerOnMount"/)
   const mountStart = source.slice(source.indexOf('onMounted(() => {'), source.indexOf('// Embed 渠道'))

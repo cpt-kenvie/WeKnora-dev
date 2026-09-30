@@ -2008,6 +2008,12 @@ const emit = defineEmits<{
   (e: 'retry-steer', steerId: string): void;
 }>();
 
+// 图片既可由图片按钮添加，也可由附件按钮上传；两种入口都允许不填写文字。
+const hasImageInput = computed(() => !props.embeddedMode && (
+  uploadedImages.value.length > 0 || uploadedAttachments.value.some(item => isImageFile(item.file))
+));
+const canSend = computed(() => query.value.trim().length > 0 || hasImageInput.value);
+
 // options ride along with this one send only: a send that returns early (or
 // steers into the running turn) drops them instead of leaving them behind.
 const createSession = async (
@@ -2018,7 +2024,7 @@ const createSession = async (
   if (props.composerLocked) {
     return;
   }
-  if (!val.trim()) {
+  if (!val.trim() && !hasImageInput.value) {
     MessagePlugin.info(t('input.messages.enterContent'));
     return;
   }
@@ -2997,7 +3003,7 @@ defineExpose({
           </t-tooltip>
           <t-tooltip v-else :content="`${isReplying && canSteer ? $t('input.steerAfter') : $t('input.send')} · Enter`">
             <button type="button" @click="createSession(query)" class="control-btn send-btn" data-guide="chat-send"
-              :disabled="!query.trim() || composerLocked" :class="{ 'disabled': !query.trim() || composerLocked }"
+              :disabled="!canSend || composerLocked" :class="{ 'disabled': !canSend || composerLocked }"
               :aria-label="isReplying && canSteer ? $t('input.steerAfter') : $t('input.send')">
               <t-icon name="arrow-up" />
             </button>

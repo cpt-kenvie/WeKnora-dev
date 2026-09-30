@@ -26121,9 +26121,6 @@ const docTemplate = `{
         },
         "internal_handler_session.CreateKnowledgeQARequest": {
             "type": "object",
-            "required": [
-                "query"
-            ],
             "properties": {
                 "agent_enabled": {
                     "description": "Whether agent mode is enabled for this request",
@@ -26199,7 +26196,7 @@ const docTemplate = `{
                     }
                 },
                 "query": {
-                    "description": "Query text for knowledge base search",
+                    "description": "用户文字；有图片时允许为空，空消息由请求处理器校验。",
                     "type": "string"
                 },
                 "question_origin": {

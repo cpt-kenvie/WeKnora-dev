@@ -2556,7 +2556,7 @@ export default {
     },
     download: {
       title: '새 모델 다운로드',
-      descPrefix: '모델 이름을 입력하여 다운로드, ',
+      descPrefix: '다운로드할 모델 이름을 입력하세요.',
       browse: 'Ollama 모델 라이브러리 탐색',
       placeholder: '예: qwen2.5:0.5b',
       download: '다운로드',
@@ -3250,7 +3250,7 @@ export default {
     dbVersionDescription: '현재 데이터베이스 마이그레이션 버전',
     dbMigrationFailedTag: '마이그레이션 실패',
     dbMigrationFailedTitle: '데이터베이스 마이그레이션 실패',
-    dbMigrationFailedDesc: '시작 시 데이터베이스 마이그레이션이 정상적으로 완료되지 않았습니다. 일부 테이블이나 인덱스가 생성되지 않았을 수 있으며, Wiki와 지식 그래프 기능 등이 동작하지 않을 수 있습니다. 먼저 아래 문제 해결 문서를 확인하여 직접 복구해 보고, 그래도 해결되지 않으면 이슈를 등록해 주세요.',
+    dbMigrationFailedDesc: '시작 시 데이터베이스 마이그레이션이 정상적으로 완료되지 않았습니다. 일부 테이블이나 인덱스가 생성되지 않았을 수 있으며, Wiki와 지식 그래프 기능 등이 동작하지 않을 수 있습니다. 아래 오류 정보를 바탕으로 데이터베이스 설정과 서비스 로그를 확인하세요.',
     dbMigrationViewDocs: '문제 해결 문서 보기',
     dbMigrationReportIssue: '해결되지 않나요? 이슈 등록',
     keywordIndexEngineLabel: '키워드 인덱스 엔진',
@@ -6599,7 +6599,7 @@ export default {
       credentialUnconfigured: 'WeKnoraCloud 자격 증명이 설정되지 않았습니다. APPID와 APPSECRET을 먼저 설정하세요.',
       checkingStatus: '자격 증명 상태 확인 중...',
       goToSettings: '설정으로 이동',
-      modelHintConfigured: 'WeKnoraCloud 자격 증명이 설정되었습니다. 지원 모델은',
+      modelHintConfigured: 'WeKnoraCloud 자격 증명이 설정되었습니다.',
       modelHintDocsLink: 'API 문서',
       addModelsSuccess: '{count}개 모델이 추가되었습니다',
       addModelsPartial: '{success}개 추가, {failed}개 실패',
@@ -7697,7 +7697,7 @@ export default {
     steps: {
       done: {
         title: '준비 완료',
-        desc: '핵심 기능을 모두 익혔습니다. 이제 나만의 지식 어시스턴트를 만들어 보세요! 메뉴 상단 닉네임 옆 도움말 버튼에서 언제든 가이드를 다시 볼 수 있습니다.'
+        desc: '핵심 기능을 모두 익혔습니다. 이제 나만의 지식 어시스턴트를 만들어 보세요!'
       },
       models: {
         title: '모델 구성하기',
@@ -7705,7 +7705,7 @@ export default {
       },
       settings: {
         title: '계정 및 설정 입구',
-        desc: '여기를 열면 계정, 멤버, 시스템 설정을 관리할 수 있습니다. 이 가이드는 메뉴 상단 닉네임 옆 도움말 버튼에서 다시 열 수 있습니다.'
+        desc: '여기를 열면 계정, 멤버, 시스템 설정을 관리할 수 있습니다.'
       },
       agents: {
         title: '전용 에이전트 구축',
