@@ -61,9 +61,11 @@ type PipelineRequest struct {
 	DataAnalysisEnabled bool `json:"-"`
 
 	// Image / multimodal support
-	Images                  []string `json:"-"`
-	VLMModelID              string   `json:"-"`
-	ChatModelSupportsVision bool     `json:"-"`
+	Images     []string `json:"-"`
+	VLMModelID string   `json:"-"`
+	// 共享题库的识图模型在所属租户内解析，仅由已授权检索范围设置。
+	VLMModelTenantID        uint64 `json:"-"`
+	ChatModelSupportsVision bool   `json:"-"`
 
 	// File attachments support
 	Attachments MessageAttachments `json:"-"`
@@ -272,6 +274,7 @@ func (c *ChatManage) Clone() *ChatManage {
 			DataAnalysisEnabled:      c.DataAnalysisEnabled,
 			Images:                   append([]string(nil), c.Images...),
 			VLMModelID:               c.VLMModelID,
+			VLMModelTenantID:         c.VLMModelTenantID,
 			ChatModelSupportsVision:  c.ChatModelSupportsVision,
 			Attachments:              append(MessageAttachments(nil), c.Attachments...),
 			TenantID:                 c.TenantID,

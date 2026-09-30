@@ -705,6 +705,7 @@ func (s *sessionService) KnowledgeQAByEvent(ctx context.Context,
 	chatManage.QuestionBankOnly = s.questionBankScope(ctx, chatManage.SearchTargets)
 	if chatManage.QuestionBankOnly {
 		chatManage.EnableRewrite, chatManage.EnableQueryExpansion, chatManage.WebSearchEnabled = false, false, false
+		s.resolveQuestionImageModel(ctx, chatManage)
 	}
 	pipelineStart := time.Now()
 	lastRetrievalStage := chatpipeline.LastConsolidatedRetrievalStage(eventList, chatManage)

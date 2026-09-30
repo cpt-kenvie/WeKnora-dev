@@ -32,7 +32,7 @@ func ShouldEmitQueryUnderstandProgress(chatManage *types.ChatManage) bool {
 	if chatManage == nil {
 		return false
 	}
-	return chatManage.EnableRewrite || len(chatManage.Images) > 0
+	return chatManage.EnableRewrite || len(chatManage.Images) > 0 || hasQuestionInput(chatManage)
 }
 
 // IsConsolidatedRetrievalStage reports whether a pipeline stage belongs to the

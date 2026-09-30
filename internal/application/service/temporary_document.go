@@ -696,7 +696,10 @@ func (s *temporaryDocumentService) ResolveForPrompt(ctx context.Context, tenantI
 		// Image-type attachments always expose their image so vision models can
 		// see it directly; text documents only attach extracted images when the
 		// question is visual, to avoid gratuitous multimodal latency.
-		if docparser.IsImageFormat(document.FileType) || isVisualDocumentQuery(query) {
+		if docparser.IsImageFormat(document.FileType) {
+			// OCR 引擎可能只返回文字，不返回图片引用；识图始终使用原始附件。
+			result.ImageURLs = append(result.ImageURLs, document.ResourceRef)
+		} else if isVisualDocumentQuery(query) {
 			for _, image := range temporaryDocumentImageRefs(document.ImageRefs) {
 				if image.URL != "" && len(result.ImageURLs) < 4 {
 					result.ImageURLs = append(result.ImageURLs, image.URL)

@@ -18,6 +18,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/application/access"
 	"github.com/Tencent/WeKnora/internal/errors"
 	"github.com/Tencent/WeKnora/internal/event"
+	"github.com/Tencent/WeKnora/internal/infrastructure/docparser"
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/models/api"
 	"github.com/Tencent/WeKnora/internal/sandbox"
@@ -1434,20 +1435,21 @@ func (h *Handler) executeQA(reqCtx *qaRequestContext, mode qaMode, generateTitle
 
 		// Resolve pre-uploaded attachments (may still be parsing): waits with a
 		// timeline step so the send is not blocked, then injects content/images.
-		h.resolveTemporaryAttachments(streamCtx, reqCtx)
+		serviceErr := h.resolveTemporaryAttachments(streamCtx, reqCtx)
 
 		// Run VLM image analysis if applicable
-		h.runVLMAnalysisIfNeeded(streamCtx, reqCtx, mode)
+		if serviceErr == nil {
+			h.runVLMAnalysisIfNeeded(streamCtx, reqCtx, mode)
+		}
 
 		// Build QA request and invoke the appropriate service
 		qaReq := reqCtx.buildQARequest()
 
-		var serviceErr error
-		var stageName string
-		if mode == qaModeNormal {
+		stageName := "attachment_parsing"
+		if serviceErr == nil && mode == qaModeNormal {
 			stageName = "knowledge_qa_execution"
 			serviceErr = h.sessionService.KnowledgeQA(streamCtx.asyncCtx, qaReq, streamCtx.eventBus)
-		} else {
+		} else if serviceErr == nil {
 			stageName = "agent_execution"
 			serviceErr = h.sessionService.AgentQA(streamCtx.asyncCtx, qaReq, streamCtx.eventBus)
 		}
@@ -1575,13 +1577,11 @@ func attachmentParseWaitTimeout() time.Duration {
 	return defaultAttachmentParseWaitTimeout
 }
 
-// resolveTemporaryAttachments selects prompt content for pre-uploaded documents
-// after the SSE stream is live. When any attachment is still parsing it emits a
-// "attachment_parsing" timeline step and waits (bounded); unfinished attachments
-// are skipped rather than blocking or failing the whole turn.
-func (h *Handler) resolveTemporaryAttachments(streamCtx *sseStreamContext, reqCtx *qaRequestContext) {
+// resolveTemporaryAttachments 在流开始后等待预上传附件解析，并组装模型输入。
+// 普通文档超时后沿用跳过策略；图片未就绪时中止本轮，避免遗漏用户的实际问题。
+func (h *Handler) resolveTemporaryAttachments(streamCtx *sseStreamContext, reqCtx *qaRequestContext) error {
 	if len(reqCtx.attachmentIDs) == 0 {
-		return
+		return nil
 	}
 	ctx := streamCtx.asyncCtx
 	sessionID := reqCtx.sessionID
@@ -1610,10 +1610,30 @@ func (h *Handler) resolveTemporaryAttachments(streamCtx *sseStreamContext, reqCt
 	}
 
 	readyIDs, skipped := h.partitionReadyAttachments(ctx, tenantID, sessionID, reqCtx.attachmentIDs)
+	var imageParseErr error
+	// 图片是本轮问题的输入，不能在未解析完成时跳过它并仅检索“回答”。
+	for _, attachment := range reqCtx.attachmentMetas {
+		if !docparser.IsImageFormat(attachment.FileType) {
+			continue
+		}
+		ready := false
+		for _, id := range readyIDs {
+			if id == attachment.ID {
+				ready = true
+				break
+			}
+		}
+		if !ready {
+			imageParseErr = fmt.Errorf("图片附件 %s 未完成解析或解析失败，请检查附件状态后重试", attachment.FileName)
+			break
+		}
+	}
 
 	var temporaryResult *types.TemporaryDocumentPromptResult
 	var resolveErr error
-	if len(readyIDs) > 0 {
+	if imageParseErr != nil {
+		resolveErr = imageParseErr
+	} else if len(readyIDs) > 0 {
 		temporaryResult, resolveErr = h.temporaryDocuments.ResolveForPrompt(ctx, tenantID, sessionID, readyIDs, reqCtx.query)
 	}
 
@@ -1645,10 +1665,14 @@ func (h *Handler) resolveTemporaryAttachments(streamCtx *sseStreamContext, reqCt
 		})
 	}
 	if resolveErr != nil || temporaryResult == nil {
+		if imageParseErr != nil {
+			return imageParseErr
+		}
 		if resolveErr != nil {
 			logger.Warnf(ctx, "temporary attachment resolution failed for session %s: %v", sessionID, resolveErr)
+			return fmt.Errorf("附件内容读取失败，请重新上传后重试：%w", resolveErr)
 		}
-		return
+		return nil
 	}
 
 	attachments := temporaryResult.Attachments
@@ -1669,11 +1693,13 @@ func (h *Handler) resolveTemporaryAttachments(streamCtx *sseStreamContext, reqCt
 	// later Agent-mode turn rebuilds history from the Attachments column and
 	// sees empty attachments (see buildUserHistoryMessage in agent_history.go).
 	h.persistResolvedAttachmentContent(ctx, reqCtx, attachments)
-	if reqCtx.customAgent != nil && reqCtx.customAgent.Config.ImageUploadEnabled {
+	// 普通知识库对话也需要把已授权的图片附件交给检索前的识图步骤。
+	if reqCtx.customAgent == nil || reqCtx.customAgent.Config.ImageUploadEnabled {
 		for _, imageURL := range temporaryResult.ImageURLs {
 			reqCtx.images = append(reqCtx.images, ImageAttachment{URL: imageURL})
 		}
 	}
+	return nil
 }
 
 // persistResolvedAttachmentContent writes the parsed content of pre-uploaded

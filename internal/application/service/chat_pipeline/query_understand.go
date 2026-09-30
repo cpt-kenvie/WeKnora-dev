@@ -63,9 +63,15 @@ func (p *PluginQueryUnderstand) OnEvent(ctx context.Context,
 ) *PluginError {
 	chatManage.RewriteQuery = chatManage.Query
 
-	hasImages := len(chatManage.Images) > 0
+	questionInput := hasQuestionInput(chatManage)
+	analysisImages := chatManage.Images
+	if questionInput {
+		// 已由解析引擎提取出文字的图片无需再次调用视觉模型。
+		analysisImages = questionImagesToAnalyze(chatManage)
+	}
+	hasImages := len(analysisImages) > 0
 	needRewrite := chatManage.EnableRewrite
-	if !needRewrite && !hasImages {
+	if !needRewrite && !hasImages && !questionInput {
 		pipelineInfo(ctx, "QueryUnderstand", "skip", map[string]interface{}{
 			"session_id": chatManage.SessionID,
 			"reason":     "rewrite_disabled_no_images",
@@ -89,12 +95,18 @@ func (p *PluginQueryUnderstand) OnEvent(ctx context.Context,
 			"session_id": chatManage.SessionID,
 			"rounds":     len(historyList),
 		})
-	} else {
+	} else if !questionInput {
 		historyList = p.loadHistory(ctx, chatManage)
 	}
 
 	// --- Select the appropriate model ---
 	rewriteModel, useImages := p.selectModel(ctx, chatManage, hasImages)
+	if questionInput && (rewriteModel == nil || (hasImages && !useImages)) {
+		return questionInputError("图片题目识别不可用，请配置可用的视觉模型，或使用能提取图片文字的附件解析引擎")
+	}
+	if questionInput && !hasImages && !hasQuestionInputText(chatManage) {
+		return questionInputError("附件中尚未提取出题目文字，请检查图片解析配置或重新上传清晰图片")
+	}
 	if rewriteModel == nil {
 		pipelineError(ctx, "QueryUnderstand", "get_model", map[string]interface{}{
 			"session_id": chatManage.SessionID,
@@ -103,11 +115,20 @@ func (p *PluginQueryUnderstand) OnEvent(ctx context.Context,
 	}
 
 	// --- Build prompts ---
-	systemContent, userContent := p.buildPrompts(ctx, chatManage, historyList)
+	var systemContent, userContent string
+	if questionInput {
+		systemContent = questionQueryPrompt
+		userContent = chatManage.Query + chatManage.Attachments.BuildPrompt()
+		if chatManage.ImageDescription != "" {
+			userContent += "\n\n<image_description>\n" + chatManage.ImageDescription + "\n</image_description>"
+		}
+	} else {
+		systemContent, userContent = p.buildPrompts(ctx, chatManage, historyList)
+	}
 
 	userMsg := chat.Message{Role: "user", Content: userContent}
 	if useImages {
-		userMsg.Images = chatManage.Images
+		userMsg.Images = analysisImages
 	}
 
 	maxTokens := 150
@@ -116,6 +137,9 @@ func (p *PluginQueryUnderstand) OnEvent(ctx context.Context,
 		// At 500 tokens a text-heavy screenshot cut the JSON off, the parse
 		// failed, and the turn lost its rewrite, intent and description.
 		maxTokens = 2048
+	}
+	if questionInput {
+		maxTokens = 4096 // 保留题干与选项，避免多题截图在转录时被截断。
 	}
 
 	// --- Call model ---
@@ -134,11 +158,29 @@ func (p *PluginQueryUnderstand) OnEvent(ctx context.Context,
 			"session_id": chatManage.SessionID,
 			"error":      err.Error(),
 		})
+		if questionInput {
+			return questionInputError("图片或附件题目识别失败，请稍后重试或检查识图模型连接")
+		}
 		return next()
 	}
 
 	// --- Parse structured output ---
+	if questionInput {
+		// 题库不能把被截断或无题目的识别结果当作正常检索请求。
+		if response == nil {
+			return questionInputError("题目识别未返回结果，请重试或检查识图模型配置")
+		}
+		output, ok := parseStructuredQueryOutput(response.Content)
+		if !ok || strings.TrimSpace(output.RewriteQuery) == "" {
+			return questionInputError("未能完整识别图片或附件中的题干和选项，请上传清晰、完整的题目")
+		}
+	}
 	p.parseOutput(chatManage, response.Content)
+	if questionInput {
+		chatManage.Intent = types.IntentKBSearch
+		// 非视觉回答模型同样需要题干和选项，才能核对检索到的候选题。
+		chatManage.ImageDescription = chatManage.RewriteQuery
+	}
 
 	// Persist image description asynchronously — this DB write does not affect
 	// the current pipeline result, so it can run in the background.
@@ -244,7 +286,11 @@ func (p *PluginQueryUnderstand) selectModel(ctx context.Context, chatManage *typ
 			})
 		}
 		if chatManage.VLMModelID != "" {
-			m, err := p.modelService.GetChatModel(ctx, chatManage.VLMModelID)
+			modelCtx := ctx
+			if chatManage.VLMModelTenantID != 0 {
+				modelCtx = types.WithExecutionTenant(ctx, chatManage.VLMModelTenantID)
+			}
+			m, err := p.modelService.GetChatModel(modelCtx, chatManage.VLMModelID)
 			if err == nil {
 				return m, true
 			}
