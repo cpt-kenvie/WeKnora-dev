@@ -69,7 +69,7 @@ type wireMessage struct {
 
 type wirePart struct {
 	Type     string        `json:"type"`
-	Text     string        `json:"text,omitempty"`
+	Text     *string       `json:"text,omitempty"`
 	ImageURL *wireImageURL `json:"image_url,omitempty"`
 }
 
@@ -99,7 +99,7 @@ func (c *Client) convertMessages(messages []api.Message) []wireMessage {
 			for _, part := range msg.MultiContent {
 				switch part.Type {
 				case "text":
-					parts = append(parts, wirePart{Type: "text", Text: part.Text})
+					parts = append(parts, wirePart{Type: "text", Text: &part.Text})
 				case "image_url":
 					if part.ImageURL != nil {
 						parts = append(parts, wirePart{Type: "image_url", ImageURL: &wireImageURL{
@@ -116,7 +116,8 @@ func (c *Client) convertMessages(messages []api.Message) []wireMessage {
 					URL: api.ResolveImageURLForLLM(img), Detail: "auto",
 				}})
 			}
-			parts = append(parts, wirePart{Type: "text", Text: msg.Content})
+			// 纯图片消息的文字可以为空，但 text 类型仍必须包含 text 字段。
+			parts = append(parts, wirePart{Type: "text", Text: &msg.Content})
 			wm.Content = c.contentParts(parts)
 		default:
 			if msg.Content != "" || len(msg.ToolCalls) == 0 {
@@ -173,8 +174,8 @@ func (c *Client) contentParts(parts []wirePart) any {
 	}
 	var texts []string
 	for _, p := range parts {
-		if p.Type == "text" && p.Text != "" {
-			texts = append(texts, p.Text)
+		if p.Type == "text" && p.Text != nil && *p.Text != "" {
+			texts = append(texts, *p.Text)
 		}
 	}
 	return strings.Join(texts, "\n")

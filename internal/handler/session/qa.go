@@ -827,16 +827,7 @@ func (h *Handler) setupSSEStream(reqCtx *qaRequestContext, generateTitle bool, m
 	streamCtx.streamHandler = h.setupStreamHandler(asyncCtx, reqCtx.sessionID, reqCtx.assistantMessage.ID,
 		reqCtx.requestID, reqCtx.session.TenantID, reqCtx.receivedAt, reqCtx.assistantMessage, eventBus)
 
-	// Generate title if needed
-	if generateTitle && reqCtx.session.Title == "" {
-		// Use the same model as the conversation for title generation
-		modelID := ""
-		if reqCtx.customAgent != nil && reqCtx.customAgent.Config.ModelID != "" {
-			modelID = reqCtx.customAgent.Config.ModelID
-		}
-		logger.Infof(reqCtx.ctx, "Session has no title, starting async title generation, session ID: %s, model: %s", reqCtx.sessionID, modelID)
-		h.sessionService.GenerateTitleAsync(asyncCtx, reqCtx.session, reqCtx.query, modelID, eventBus)
-	}
+	h.setupTitleGeneration(streamCtx, reqCtx, generateTitle)
 
 	return streamCtx
 }
@@ -1338,7 +1329,7 @@ func (h *Handler) executeQA(reqCtx *qaRequestContext, mode qaMode, generateTitle
 	// Normal mode: register completion handler on EventAgentFinalAnswer
 	// (Agent mode handles completion in the defer block instead)
 	if mode == qaModeNormal {
-		var completionHandled bool
+		var completion sync.Once
 
 		// Persist the pipeline's retrieval/attachment stages so a reloaded
 		// conversation redraws the timeline it showed while streaming, including
@@ -1371,14 +1362,22 @@ func (h *Handler) executeQA(reqCtx *qaRequestContext, mode qaMode, generateTitle
 				markQuickAnswerTruncated(streamCtx.assistantMessage)
 			}
 			if data.Done {
-				if completionHandled {
-					return nil
-				}
-				completionHandled = true
-
-				logger.Infof(streamCtx.asyncCtx, "Knowledge QA service completed for session: %s", sessionID)
-				updateCtx := context.WithValue(streamCtx.asyncCtx, types.TenantIDContextKey, reqCtx.session.TenantID)
-				h.completeQuickAnswerTurn(updateCtx, streamCtx, reqCtx.query, reqCtx.userMessageID)
+				completion.Do(func() {
+					logger.Infof(streamCtx.asyncCtx, "Knowledge QA service completed for session: %s", sessionID)
+					updateCtx := context.WithValue(streamCtx.asyncCtx, types.TenantIDContextKey, reqCtx.session.TenantID)
+					h.completeQuickAnswerTurn(updateCtx, streamCtx, reqCtx.query, reqCtx.userMessageID)
+				})
+			}
+			return nil
+		})
+		// 识图、检索或流式生成失败同样必须落库并结束，刷新页面才不会恢复成加载状态。
+		streamCtx.eventBus.On(event.EventError, func(ctx context.Context, evt event.Event) error {
+			data, ok := evt.Data.(event.ErrorData)
+			if ok {
+				completion.Do(func() {
+					updateCtx := types.WithExecutionTenant(context.WithoutCancel(ctx), reqCtx.session.TenantID)
+					h.failQuickAnswerTurn(updateCtx, streamCtx, data.Error)
+				})
 			}
 			return nil
 		})
@@ -1402,6 +1401,10 @@ func (h *Handler) executeQA(reqCtx *qaRequestContext, mode qaMode, generateTitle
 				logger.ErrorWithFields(streamCtx.asyncCtx,
 					errors.NewInternalServerError(fmt.Sprintf("%s service panicked: %v\n%s", stageName, r, string(buf))),
 					map[string]interface{}{"session_id": sessionID})
+				_ = streamCtx.eventBus.Emit(context.WithoutCancel(streamCtx.asyncCtx), event.Event{
+					Type: event.EventError, SessionID: sessionID,
+					Data: event.ErrorData{Stage: "qa_execution", Error: "问答处理失败，请稍后重试"},
+				})
 			}
 			// Agent mode: complete the assistant message in defer (normal mode does it via event handler)
 			if mode == qaModeAgent {
@@ -1472,6 +1475,12 @@ func (h *Handler) executeQA(reqCtx *qaRequestContext, mode qaMode, generateTitle
 
 		// Build QA request and invoke the appropriate service
 		qaReq := reqCtx.buildQARequest()
+		if strings.TrimSpace(reqCtx.query) == "" && qaReq.ImageDescription != "" {
+			_ = streamCtx.eventBus.Emit(streamCtx.asyncCtx, event.Event{
+				Type: event.EventQueryRewritten, SessionID: sessionID,
+				Data: event.QueryData{SessionID: sessionID, RewrittenQuery: qaReq.ImageDescription},
+			})
+		}
 
 		stageName := "attachment_parsing"
 		if serviceErr == nil && mode == qaModeNormal {

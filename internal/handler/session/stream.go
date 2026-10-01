@@ -140,7 +140,7 @@ func (h *Handler) ContinueStream(c *gin.Context) {
 	// Check if stream is already completed
 	streamCompleted := false
 	for _, evt := range events {
-		if evt.Type == "complete" {
+		if isTerminalStreamEvent(evt) {
 			streamCompleted = true
 			break
 		}
@@ -184,7 +184,7 @@ func (h *Handler) ContinueStream(c *gin.Context) {
 			streamCompletedNow := false
 			for _, evt := range newEvents {
 				// Check for completion event
-				if evt.Type == "complete" {
+				if isTerminalStreamEvent(evt) {
 					streamCompletedNow = true
 				}
 
@@ -341,6 +341,7 @@ func (h *Handler) handleAgentEventsForSSE(
 
 	lastOffset := 0
 	log := logger.GetLogger(ctx)
+	titleReceived := false
 
 	log.Infof("Starting pull-based SSE streaming for session=%s, message=%s", sessionID, assistantMessageID)
 
@@ -365,7 +366,7 @@ func (h *Handler) handleAgentEventsForSSE(
 
 			// Send any new events
 			streamCompleted := false
-			titleReceived := false
+			streamFailed := false
 			for _, evt := range events {
 				// Check for stop event
 				if evt.Type == types.ResponseType(event.EventStop) {
@@ -402,8 +403,11 @@ func (h *Handler) handleAgentEventsForSSE(
 				}
 
 				// Check for completion event
-				if evt.Type == "complete" {
+				if isTerminalStreamEvent(evt) {
 					streamCompleted = true
+				}
+				if evt.Type == types.ResponseTypeError && evt.Done {
+					streamFailed = true
 				}
 
 				// Check for title event
@@ -428,7 +432,7 @@ func (h *Handler) handleAgentEventsForSSE(
 
 			// Check if stream is completed - wait for title event only if needed and not already received
 			if streamCompleted {
-				if waitForTitle && !titleReceived {
+				if waitForTitle && !titleReceived && !streamFailed {
 					log.Infof("Stream completed for session=%s, message=%s, waiting for title event", sessionID, assistantMessageID)
 					// Wait up to 3 seconds for title event after completion
 					titleTimeout := time.After(3 * time.Second)
@@ -472,4 +476,9 @@ func (h *Handler) handleAgentEventsForSSE(
 			}
 		}
 	}
+}
+
+// isTerminalStreamEvent 失败也是流的终态，避免持久化失败时继续无限轮询。
+func isTerminalStreamEvent(evt interfaces.StreamEvent) bool {
+	return evt.Type == types.ResponseTypeComplete || (evt.Type == types.ResponseTypeError && evt.Done)
 }

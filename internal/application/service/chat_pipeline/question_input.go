@@ -15,6 +15,9 @@ const questionQueryPrompt = `你是题库检索前的题目转录器。用户上
 只输出 JSON：{"rewrite_query":"完整题干和选项，多题用换行分隔","intent":"kb_search","image_description":"图片中识别出的题目文字"}。
 没有可读题目，或题干、选项不完整时，将 rewrite_query 留空。`
 
+// 请求模型使用结构化输出，避免题干已识别但 JSON 标点错误导致整轮失败。
+const questionQueryFormat = `{"type":"object","properties":{"rewrite_query":{"type":"string"},"intent":{"type":"string","enum":["kb_search"]},"image_description":{"type":"string"}},"required":["rewrite_query","intent","image_description"],"additionalProperties":false}`
+
 var questionImageMarkdownPattern = regexp.MustCompile(`!\[[^\]]*\]\([^)]*\)`)
 
 func hasQuestionInput(cm *types.ChatManage) bool {

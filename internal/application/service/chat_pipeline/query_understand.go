@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Tencent/WeKnora/internal/config"
+	"github.com/Tencent/WeKnora/internal/event"
 	"github.com/Tencent/WeKnora/internal/models/chat"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
@@ -145,14 +146,16 @@ func (p *PluginQueryUnderstand) OnEvent(ctx context.Context,
 	// --- Call model ---
 	thinking := false
 	modelCtx := types.WithLLMCallMetadata(ctx, "query_rewrite", "")
+	options := &chat.ChatOptions{
+		Temperature: 0.3, MaxCompletionTokens: maxTokens, Thinking: &thinking,
+	}
+	if questionInput {
+		options.Format = json.RawMessage(questionQueryFormat)
+	}
 	response, err := rewriteModel.Chat(modelCtx, []chat.Message{
 		{Role: "system", Content: systemContent},
 		userMsg,
-	}, &chat.ChatOptions{
-		Temperature:         0.3,
-		MaxCompletionTokens: maxTokens,
-		Thinking:            &thinking,
-	})
+	}, options)
 	if err != nil {
 		pipelineError(ctx, "QueryUnderstand", "model_call", map[string]interface{}{
 			"session_id": chatManage.SessionID,
@@ -180,6 +183,13 @@ func (p *PluginQueryUnderstand) OnEvent(ctx context.Context,
 		chatManage.Intent = types.IntentKBSearch
 		// 非视觉回答模型同样需要题干和选项，才能核对检索到的候选题。
 		chatManage.ImageDescription = chatManage.RewriteQuery
+	}
+	// 识图完成后才提供标题输入，避免纯图片请求用空文字生成无意义标题。
+	if chatManage.EventBus != nil && strings.TrimSpace(chatManage.Query) == "" && chatManage.ImageDescription != "" {
+		_ = chatManage.EventBus.Emit(ctx, types.Event{
+			Type: types.EventType(event.EventQueryRewritten), SessionID: chatManage.SessionID,
+			Data: event.QueryData{SessionID: chatManage.SessionID, RewrittenQuery: chatManage.ImageDescription},
+		})
 	}
 
 	// Persist image description asynchronously — this DB write does not affect
@@ -275,16 +285,7 @@ func (p *PluginQueryUnderstand) loadHistory(ctx context.Context, chatManage *typ
 // it prefers a vision-capable model. Returns (model, useImages).
 func (p *PluginQueryUnderstand) selectModel(ctx context.Context, chatManage *types.ChatManage, hasImages bool) (chat.Chat, bool) {
 	if hasImages {
-		if chatManage.ChatModelSupportsVision {
-			m, err := p.modelService.GetChatModel(ctx, chatManage.ChatModelID)
-			if err == nil {
-				return m, true
-			}
-			pipelineWarn(ctx, "QueryUnderstand", "vision_model_fallback", map[string]interface{}{
-				"session_id": chatManage.SessionID,
-				"error":      err.Error(),
-			})
-		}
+		// 显式配置的识图模型优先，回答模型的视觉能力标记只作为后备。
 		if chatManage.VLMModelID != "" {
 			modelCtx := ctx
 			if chatManage.VLMModelTenantID != 0 {
@@ -298,6 +299,16 @@ func (p *PluginQueryUnderstand) selectModel(ctx context.Context, chatManage *typ
 				"session_id":   chatManage.SessionID,
 				"vlm_model_id": chatManage.VLMModelID,
 				"error":        err.Error(),
+			})
+		}
+		if chatManage.ChatModelSupportsVision {
+			m, err := p.modelService.GetChatModel(ctx, chatManage.ChatModelID)
+			if err == nil {
+				return m, true
+			}
+			pipelineWarn(ctx, "QueryUnderstand", "vision_model_fallback", map[string]interface{}{
+				"session_id": chatManage.SessionID,
+				"error":      err.Error(),
 			})
 		}
 		pipelineWarn(ctx, "QueryUnderstand", "no_vision_model", map[string]interface{}{

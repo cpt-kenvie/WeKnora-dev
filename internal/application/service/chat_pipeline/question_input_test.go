@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Tencent/WeKnora/internal/config"
+	"github.com/Tencent/WeKnora/internal/event"
 	"github.com/Tencent/WeKnora/internal/models/chat"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
@@ -17,10 +18,32 @@ type questionInputChat struct {
 	messages []chat.Message
 	response string
 	err      error
+	options  *chat.ChatOptions
 }
 
-func (m *questionInputChat) Chat(_ context.Context, messages []chat.Message, _ *chat.ChatOptions) (*types.ChatResponse, error) {
+func TestQuestionImagePrefersConfiguredVLMAndEmitsTitleInput(t *testing.T) {
+	model := &questionInputChat{response: `{"rewrite_query":"火灾时能否使用电梯疏散？"}`}
+	models := &questionInputModels{model: model}
+	p := &PluginQueryUnderstand{modelService: models, config: &config.Config{}}
+	bus := event.NewEventBus()
+	var titleInput string
+	bus.On(event.EventQueryRewritten, func(_ context.Context, evt event.Event) error {
+		titleInput = evt.Data.(event.QueryData).RewrittenQuery
+		return nil
+	})
+	cm := &types.ChatManage{PipelineRequest: types.PipelineRequest{
+		ChatModelID: "answer", ChatModelSupportsVision: true,
+		VLMModelID: "configured-vision", Images: []string{"image"},
+	}, PipelineContext: types.PipelineContext{EventBus: bus.AsEventBusInterface()}, QuestionBankOnly: true}
+	require.Nil(t, p.OnEvent(context.Background(), types.QUERY_UNDERSTAND, cm, func() *PluginError { return nil }))
+	require.Equal(t, "configured-vision", models.id)
+	require.JSONEq(t, questionQueryFormat, string(model.options.Format))
+	require.Equal(t, "火灾时能否使用电梯疏散？", titleInput)
+}
+
+func (m *questionInputChat) Chat(_ context.Context, messages []chat.Message, options *chat.ChatOptions) (*types.ChatResponse, error) {
 	m.messages = messages
+	m.options = options
 	return &types.ChatResponse{Content: m.response}, m.err
 }
 

@@ -826,6 +826,10 @@ func (s *sessionService) GenerateTitle(ctx context.Context,
 		logger.Error(ctx, "No user message found, cannot generate title")
 		return "", stderrors.New("no user message found")
 	}
+	// 纯图片消息在识别完成前没有标题输入，保留空标题供识别结果触发生成。
+	if strings.TrimSpace(message.Content) == "" {
+		return "", nil
+	}
 
 	// Use provided modelID, or fallback to first available KnowledgeQA model
 	if modelID == "" {
