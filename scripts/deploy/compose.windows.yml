@@ -1,0 +1,29 @@
+# 新 Windows 电脑使用独立的本地镜像标签，并限制常驻服务资源。
+services:
+  app:
+    image: weknora-local/app:windows
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 256
+    environment:
+      GOMAXPROCS: "2"
+      GOMEMLIMIT: 768MiB
+      CONCURRENCY_POOL_SIZE: "2"
+  frontend:
+    image: weknora-local/frontend:windows
+    cpus: 0.25
+    mem_limit: 128m
+    pids_limit: 128
+  docreader:
+    image: weknora-local/docreader:windows
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 256
+  postgres:
+    cpus: 0.5
+    mem_limit: 512m
+    pids_limit: 128
+  redis:
+    cpus: 0.25
+    mem_limit: 128m
+    pids_limit: 128

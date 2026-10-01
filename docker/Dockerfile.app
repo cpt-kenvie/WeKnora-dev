@@ -1,6 +1,10 @@
 # Build extension and daemon from the same pinned source on the runtime architecture.
 FROM --platform=$TARGETPLATFORM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS browserskill
 WORKDIR /build
+# 控制浏览器组件编译并行数和 Node 堆，供 Windows 限额构建脚本覆盖。
+ARG BUILD_JOBS=2
+ARG NODE_MAX_OLD_SPACE_SIZE=4096
+ENV CARGO_BUILD_JOBS=${BUILD_JOBS} NODE_OPTIONS=--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git python3 ca-certificates curl build-essential cmake pkg-config && \
     rm -rf /var/lib/apt/lists/*
@@ -16,6 +20,10 @@ RUN bash scripts/build_browserskill.sh /opt/weknora/browserskill "${TARGETOS}/${
 FROM golang:1.26-bookworm AS builder
 
 WORKDIR /app
+
+# Go 与文档解析引擎按相同并行度编译，减少首次构建的内存峰值。
+ARG BUILD_JOBS=2
+ENV GOMAXPROCS=${BUILD_JOBS} GOFLAGS=-p=${BUILD_JOBS} CARGO_BUILD_JOBS=${BUILD_JOBS}
 
 # 通过构建参数接收敏感信息
 ARG GOPRIVATE_ARG

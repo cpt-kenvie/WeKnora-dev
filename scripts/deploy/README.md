@@ -1,5 +1,55 @@
 # 本地构建与 SSH 部署
 
+## 新 Windows 电脑：只需 Docker Desktop
+
+`windows.ps1` 从当前源码构建应用、文档解析器和前端，然后启动本地服务。默认构建限额为 2 核 / 6 GiB，服务和 Dockerfile 阶段依次构建；结束或失败后移除专用构建容器，保留缓存。首次自动创建 `.env`、随机生成密码和密钥；以后原样保留该文件及数据卷。`compose.windows.yml` 提供独立本地镜像标签和常驻服务限额，`buildkitd.toml` 限制构建阶段并行。
+
+环境要求：
+
+- Windows PowerShell 5.1（Windows 自带）或 PowerShell 7。
+- 较新的 Docker Desktop，已启动 Linux 容器引擎；包含 Compose（支持 `build --builder`）和 Buildx 0.14+。
+- 建议电脑内存至少 16 GiB、Docker / WSL 分配至少 8 GiB，磁盘留出约 30 GiB；首次构建需要联网下载基础镜像和依赖。
+- 无需在 Windows 安装 Go、Node.js、Python 或 Rust。Git 可选：可以下载完整仓库 ZIP 解压；使用 Git 时运行 `git clone -c core.autocrlf=false https://github.com/cpt-kenvie/WeKnora-dev.git`。
+
+在代码根目录打开 PowerShell：
+
+```powershell
+# 默认：首次配置、限额构建、启动并检查健康状态
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy\windows.ps1
+```
+
+`Bypass` 仅对本次 PowerShell 进程生效，不修改系统执行策略。脚本按自身位置寻找源码，也可以使用绝对路径从其他目录运行。ZIP 必须包含新增脚本和完整源码。
+
+成功后访问 `http://localhost:8081`，注册账号并配置回答、视觉和向量模型。新部署使用本机数据库和文件存储，不导入现有服务器的数据；调用在线模型仍会使用你在界面中配置的模型服务。
+
+| 参数 | 含义 |
+| --- | --- |
+| `-Action` | `Deploy`（默认，构建并启动）、`Build`（只构建）、`Start`（使用已有本地镜像启动）、`Stop`、`Status`、`Logs`（最近 100 行）、`Check`（初始化缺失的 `.env` 并检查环境和配置，不启动服务） |
+| `-BuildCpus` | 构建总 CPU 限额及 Go/Rust 并行数，默认 2，范围 1–16 |
+| `-BuildMemoryGB` | 构建内存及内存加交换区上限，默认 6，范围 4–64 GiB |
+| `-FrontendPort` | 首次生成 `.env` 时的网页端口，默认 8081；已有配置需编辑其中的 `FRONTEND_PORT` |
+| `-StartupTimeout` | 等待服务健康的秒数，默认 180，范围 60–1800 |
+
+```powershell
+# 先检查环境，不进行构建；仅首次创建缺失的 .env
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy\windows.ps1 -Action Check
+
+# 只构建，保持 2 核 / 6 GiB 限额
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy\windows.ps1 -Action Build
+
+# 启动、查看状态、查看日志、停止（保留数据）
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy\windows.ps1 -Action Start
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy\windows.ps1 -Action Status
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy\windows.ps1 -Action Logs
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy\windows.ps1 -Action Stop
+```
+
+后续更新代码后重复运行默认命令即可。请始终通过此脚本操作这个部署，它固定使用 `weknora-windows` Compose 项目和 `compose.windows.yml`；直接使用仓库默认 Compose 命令会选择不同镜像或数据卷。已有其他 WeKnora 部署占用同名容器时应先核对，脚本不会删除其他部署。现有 `.env` 若指向远程数据库或存储，脚本也会原样保留；全新本地部署应从干净源码目录开始。
+
+运行阶段的内存上限为 app 1 GiB、docreader 1 GiB、postgres 512 MiB、frontend/redis 各 128 MiB；大文档解析确需更多资源时，可调整 `compose.windows.yml`。构建使用单独的缓存卷，失败会返回非零退出码，修正网络或内存问题后重新执行即可。
+
+## 已有环境：本地后端增量构建与 SSH 发布
+
 `build_backend.py` 在本地 Docker 容器内安装依赖、运行回归测试、编译带 anydoc 的后端，并生成应用镜像。默认限制 2 CPU、4 GiB 内存，Go 单包编译；自动清理构建容器，保留日志及产物。
 
 `deploy.py` 打包本地镜像，通过免密 SSH/SCP 上传并校验 SHA256；服务器只导入和运行，不安装编译依赖。导入期间限制发布进程和 Docker/containerd 的 CPU、内存高水位及 IO 权重，并恢复原设置。只更新应用和前端，保留现有 Compose 资源限制、配置、数据库和数据卷；健康检查失败自动回滚涉及的镜像配置与源码。
